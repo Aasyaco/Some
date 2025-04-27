@@ -1,49 +1,66 @@
-name: Build Full CPython Bundle on Ubuntu
+name: Build Python 3.13.3 .deb for Termux
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest  # Use GitHub-hosted Ubuntu runner
 
     steps:
-      - name: Install Git
-        run: sudo apt-get update && sudo apt-get install -y git
+      - name: Checkout repository
+        uses: actions/checkout@v2
 
-      - name: Clone CPython Repository
-        run: git clone --branch 3.13 --depth 1 https://github.com/python/cpython.git
-
-      - name: Install Build Dependencies
+      - name: Install dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y make build-essential libssl-dev zlib1g-dev \
-            libbz2-dev libreadline-dev libsqlite3-dev curl libncursesw5-dev \
-            xz-utils tk-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev
+          sudo apt update
+          sudo apt install -y wget tar clang make libssl-dev libffi-dev zlib1g-dev dpkg-dev xz-utils git
 
-      - name: Configure CPython
-        working-directory: ./cpython
-        run: ./configure --enable-optimizations
-
-      - name: Build CPython
-        working-directory: ./cpython
-        run: make -j$(nproc)
-
-      - name: Prepare Full CPython Bundle
-        working-directory: ./cpython
+      - name: Download Python 3.13.3 source
         run: |
-          mkdir -p ../cpython-full-bundle
-          cp python ../cpython-full-bundle/
-          cp -r Lib Include Modules config.c ./python-config* ../cpython-full-bundle/ || true
-          cp -r build ../cpython-full-bundle/ || true
-          find . -name "libpython*.so*" -exec cp {} ../cpython-full-bundle/ \;
+          wget https://www.python.org/ftp/python/3.13.3/Python-3.13.3.tar.xz
+          tar -xf Python-3.13.3.tar.xz
 
-      - name: Create ZIP Archive
+      - name: Configure Python build
         run: |
-          zip -r cpython-full.zip cpython-full-bundle
+          cd Python-3.13.3
+          # Skip optimizations to speed up the build
+          ./configure --prefix=$HOME/python-install --without-ensurepip
 
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v4
+      - name: Build Python
+        run: |
+          cd Python-3.13.3
+          # Use all available cores for faster build
+          make -j$(nproc) && make install
+
+      - name: Create DEBIAN control file
+        run: |
+          mkdir -p $HOME/python-deb/DEBIAN
+          cat > $HOME/python-deb/DEBIAN/control <<EOF
+Package: python3.13
+Version: 3.13.3
+Architecture: aarch64
+Maintainer: Your Name
+Description: Custom compiled Python 3.13.3 for Termux
+EOF
+
+      - name: Copy Python files to .deb package directory
+        run: |
+          cp -a $HOME/python-install/* $HOME/python-deb/
+        
+      - name: Build the .deb package
+        run: |
+          dpkg-deb --build $HOME/python-deb
+        working-directory: ${{ github.workspace }}
+
+      - name: Upload the .deb package
+        uses: actions/upload-artifact@v2
         with:
-          name: cpython-full
-          path: cpython-full.zip
+          name: python3.13.deb
+          path: $HOME/python-deb.deb
+          
