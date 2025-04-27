@@ -6,7 +6,6 @@ on:
   pull_request:
     branches: [ main ]
   workflow_dispatch:
-
 jobs:
   build:
     runs-on: ubuntu-latest  # Use GitHub-hosted Ubuntu runner
@@ -45,17 +44,17 @@ Package: python3.13
 Version: 3.13.3
 Architecture: aarch64
 Maintainer: Your Name
-Description: Custom compiled Python 3.13.3 for Termux
+Description: Custom compiled Python 3.13.3 for Termux 
 EOF
 
       - name: Copy Python files to .deb package directory
         run: |
           cp -a $HOME/python-install/* $HOME/python-deb/
-        
+
       - name: Build the .deb package
         run: |
-          dpkg-deb --build $HOME/python-deb
-        working-directory: ${{ github.workspace }}
+          cd $HOME/python-deb
+          dpkg-deb --build .
 
       - name: Upload the .deb package
         uses: actions/upload-artifact@v2
