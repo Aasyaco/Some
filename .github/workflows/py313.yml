@@ -2,11 +2,10 @@ name: Build Python 3.13.3 .deb for Termux
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
   pull_request:
-    branches:
-      - main
+    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   build:
