@@ -1,4 +1,4 @@
-name: Build Python 3.13.3 .deb for Termux
+name: Build Python 3.13.3 DEB
 
 on:
   push:
@@ -6,59 +6,29 @@ on:
   pull_request:
     branches: [ main ]
   workflow_dispatch:
+
 jobs:
   build:
-    runs-on: ubuntu-latest  # Use GitHub-hosted Ubuntu runner
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
+
+      - name: Make build.sh executable
+        run: chmod +x build.sh
 
       - name: Install dependencies
         run: |
           sudo apt update
           sudo apt install -y wget tar clang make libssl-dev libffi-dev zlib1g-dev dpkg-dev xz-utils git
 
-      - name: Download Python 3.13.3 source
-        run: |
-          wget https://www.python.org/ftp/python/3.13.3/Python-3.13.3.tar.xz
-          tar -xf Python-3.13.3.tar.xz
+      - name: Run build.sh
+        run: ./build.sh
 
-      - name: Configure Python build
-        run: |
-          cd Python-3.13.3
-          # Skip optimizations to speed up the build
-          ./configure --prefix=$HOME/python-install --without-ensurepip
-
-      - name: Build Python
-        run: |
-          cd Python-3.13.3
-          # Use all available cores for faster build
-          make -j$(nproc) && make install
-
-      - name: Create DEBIAN control file
-        run: |
-          mkdir -p $HOME/python-deb/DEBIAN
-          cat > $HOME/python-deb/DEBIAN/control <<EOF
-Package: python3.13
-Version: 3.13.3
-Architecture: aarch64
-Maintainer: Your Name
-Description: Custom compiled Python 3.13.3 for Termux 
-EOF
-
-      - name: Copy Python files to .deb package directory
-        run: |
-          cp -a $HOME/python-install/* $HOME/python-deb/
-
-      - name: Build the .deb package
-        run: |
-          cd $HOME/python-deb
-          dpkg-deb --build .
-
-      - name: Upload the .deb package
-        uses: actions/upload-artifact@v2
+      - name: Upload built .deb package
+        uses: actions/upload-artifact@v4
         with:
           name: python3.13.deb
-          path: $HOME/python-deb.deb
+          path: python3.13_*.deb
           
