@@ -25,6 +25,7 @@ export CFLAGS="-fPIC -DANDROID -O3 -march=native -mtune=native -fomit-frame-poin
 export CXXFLAGS="$CFLAGS"
 export LDFLAGS="-Wl,-rpath=/data/data/com.termux/files/usr/lib -flto"
 export MAKEFLAGS="-j$(nproc)"
+export ax_cv_c_float_words_bigendian=no
 
 # 🧠 Configure with maximum optimizations
 ./configure \
