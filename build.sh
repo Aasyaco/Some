@@ -4,7 +4,8 @@ set -e
 
 PYTHON_VERSION=3.13.0
 
-PREFIX_USR=$(pwd)/python-3.13
+PREFIX_USR=$PWD/python-3.13
+OPENSSL_DIR=/usr
 
 # 🧹 Clean previous
 rm -rf $PREFIX_USR
@@ -27,7 +28,7 @@ export LDFLAGS="-Wl,-rpath=/data/data/com.termux/files/usr/lib"
     --prefix=$PREFIX_USR \
     --enable-shared \
     --disable-ipv6 \
-    --with-openssl=$PREFIX \
+    --with-openssl=$OPENSSL_DIR \
     --disable-test-modules \
     ac_cv_file__dev_ptmx=yes \
     ac_cv_file__dev_ptc=no \
