@@ -2,7 +2,7 @@
 set -e
 
 # 🧹 Set environment
-PYTHON_VERSION=3.13.0
+PYTHON_VERSION=3.13.3
 PREFIX_USR=$PWD/python-3.13
 OPENSSL_DIR=/usr
 
