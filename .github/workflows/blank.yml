@@ -1,0 +1,113 @@
+name: Build Python 3.13 for Termux (aarch64)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-python:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Install dependencies
+      run: |
+        sudo apt update
+        sudo apt install -y \
+          clang \
+          crossbuild-essential-arm64 \
+          dpkg-dev \
+          build-essential \
+          wget \
+          libffi-dev \
+          libbz2-dev \
+          libssl-dev \
+          libncurses-dev \
+          libreadline-dev \
+          zlib1g-dev \
+          xz-utils \
+          file
+
+    - name: Download and build Python 3.13 for Android aarch64
+      run: |
+        set -e
+
+        PYTHON_VERSION=3.13.0
+        PREFIX_USR=$(pwd)/python-android
+        ARCH="aarch64"
+
+        rm -rf "$PREFIX_USR"
+        mkdir -p "$PREFIX_USR"
+
+        if [ ! -f Python-${PYTHON_VERSION}.tar.xz ]; then
+          wget https://www.python.org/ftp/python/${PYTHON_VERSION}/Python-${PYTHON_VERSION}.tar.xz
+        fi
+
+        tar xf Python-${PYTHON_VERSION}.tar.xz
+        cd Python-${PYTHON_VERSION}
+
+        export CC=aarch64-linux-gnu-clang
+        export CXX=aarch64-linux-gnu-clang++
+        export AR=aarch64-linux-gnu-ar
+        export RANLIB=aarch64-linux-gnu-ranlib
+        export STRIP=aarch64-linux-gnu-strip
+        export READELF=aarch64-linux-gnu-readelf
+
+        export CFLAGS="--target=aarch64-linux-gnu -fPIC -O2"
+        export LDFLAGS="--target=aarch64-linux-gnu -static-libgcc"
+
+        ./configure \
+          --host=aarch64-linux-gnu \
+          --build=$(uname -m)-linux-gnu \
+          --prefix="$PREFIX_USR" \
+          --enable-shared \
+          --disable-ipv6 \
+          ac_cv_file__dev_ptmx=yes \
+          ac_cv_file__dev_ptc=no \
+          ac_cv_func_working_mktime=yes \
+          ac_cv_have_long_long_format=yes \
+          ac_cv_printf_long_long=yes \
+          ac_cv_func_lstat_dereferences_slashed_symlink=yes \
+          CC="$CC" \
+          CXX="$CXX" \
+          AR="$AR" \
+          RANLIB="$RANLIB" \
+          STRIP="$STRIP" \
+          CFLAGS="$CFLAGS" \
+          LDFLAGS="$LDFLAGS"
+
+        make -j$(nproc)
+        make install
+
+        find "$PREFIX_USR" -type f \( -name "*.so" -o -perm -111 \) -exec "$STRIP" --strip-unneeded {} + || true
+
+        cd ..
+
+        DEB_DIR="python3.13_${PYTHON_VERSION}"
+        rm -rf "$DEB_DIR"
+        mkdir -p "$DEB_DIR/DEBIAN"
+        mkdir -p "$DEB_DIR/data/data/com.termux/files/usr"
+
+        cp -a "$PREFIX_USR"/* "$DEB_DIR/data/data/com.termux/files/usr/"
+
+        cat > "$DEB_DIR/DEBIAN/control" <<EOF
+Package: python3.13
+Version: $PYTHON_VERSION
+Architecture: $ARCH
+Maintainer: Termux Cross-Builder
+Description: Python 3.13 cross-compiled for Termux (aarch64)
+EOF
+
+        chmod 0755 "$DEB_DIR/DEBIAN"
+        chmod 0644 "$DEB_DIR/DEBIAN/control"
+
+        dpkg-deb --build "$DEB_DIR"
+
+        echo "✅ Built DEB: ${DEB_DIR}.deb"
+
+    - name: Upload DEB artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: python3.13-deb
+        path: python3.13_3.13.0.deb
