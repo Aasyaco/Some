@@ -1,100 +1,101 @@
-#/data/data/com.termux/files/usr/bin/bash
+#!/usr/bin/env bash
 set -e
 
-# 🧹 Set environment
-PYTHON_VERSION=3.13.3
-PREFIX_USR=$PWD/python-3.13
-OPENSSL_DIR=/usr
+PYTHON_VERSION=3.13.0
+ARCH=aarch64
+PKG_NAME=python3.13
+DEB_DIR="${PKG_NAME}_${PYTHON_VERSION}"
+PREFIX_USR=$(pwd)/python-android
 
-# 🧹 Clean previous
-rm -rf $PREFIX_USR
-mkdir -p $PREFIX_USR
+# Install dependencies (for local use; skip if running in CI with pre-installed deps)
+if ! command -v aarch64-linux-gnu-gcc &>/dev/null; then
+    echo "Installing required packages..."
+    sudo apt update
+    sudo apt install -y \
+      clang \
+      crossbuild-essential-arm64 \
+      dpkg-dev \
+      build-essential \
+      wget \
+      libffi-dev \
+      libbz2-dev \
+      libssl-dev \
+      libncurses-dev \
+      libreadline-dev \
+      zlib1g-dev \
+      xz-utils
+fi
 
-# 📦 Download Python 3.13 if not present
+# Clean up
+rm -rf "$PREFIX_USR" "$DEB_DIR"
+mkdir -p "$PREFIX_USR"
+
+# Download Python source
 if [ ! -f Python-${PYTHON_VERSION}.tar.xz ]; then
     wget https://www.python.org/ftp/python/${PYTHON_VERSION}/Python-${PYTHON_VERSION}.tar.xz
 fi
 
-# 🗂️ Extract and enter source
-rm -rf Python-${PYTHON_VERSION}
 tar xf Python-${PYTHON_VERSION}.tar.xz
 cd Python-${PYTHON_VERSION}
 
-# ⚡ Max Optimization flags
-export CFLAGS="-fPIC -DANDROID -O3 -march=native -mtune=native -fomit-frame-pointer -pipe -flto"
-export CXXFLAGS="$CFLAGS"
-export LDFLAGS="-Wl,-rpath=/data/data/com.termux/files/usr/lib -flto"
-export MAKEFLAGS="-j$(nproc)"
-export ax_cv_c_float_words_bigendian=no
+# Cross-compilation environment
+export CC=aarch64-linux-gnu-clang
+export CXX=aarch64-linux-gnu-clang++
+export AR=aarch64-linux-gnu-ar
+export RANLIB=aarch64-linux-gnu-ranlib
+export STRIP=aarch64-linux-gnu-strip
+export READELF=aarch64-linux-gnu-readelf
 
-# 🧠 Configure with maximum optimizations
+export CFLAGS="--target=aarch64-linux-gnu -fPIC -O2"
+export LDFLAGS="--target=aarch64-linux-gnu"
+
+# Configure Python
 ./configure \
-    --prefix=$PREFIX_USR \
-    --enable-optimizations \
-    --with-lto \
-    --enable-shared \
-    --disable-ipv6 \
-    --with-openssl=$OPENSSL_DIR \
-    --disable-test-modules \
-    ac_cv_file__dev_ptmx=yes \
-    ac_cv_file__dev_ptc=no \
-    ac_cv_have_long_long_format=yes \
-    ac_cv_printf_long_long=yes \
-    ac_cv_func_lstat_dereferences_slashed_symlink=yes \
-    ac_cv_func_working_mktime=yes
+  --host=aarch64-linux-gnu \
+  --build=$(uname -m)-linux-gnu \
+  --prefix="$PREFIX_USR" \
+  --enable-shared \
+  --disable-ipv6 \
+  ac_cv_file__dev_ptmx=yes \
+  ac_cv_file__dev_ptc=no \
+  ac_cv_func_working_mktime=yes \
+  ac_cv_have_long_long_format=yes \
+  ac_cv_printf_long_long=yes \
+  ac_cv_func_lstat_dereferences_slashed_symlink=yes \
+  CC="$CC" \
+  CXX="$CXX" \
+  AR="$AR" \
+  RANLIB="$RANLIB" \
+  STRIP="$STRIP" \
+  CFLAGS="$CFLAGS" \
+  LDFLAGS="$LDFLAGS"
 
-# 🛠️ Build Python
-make
-
-# 📦 Install into PREFIX folder
+make -j$(nproc)
 make install
 
-# 🧹 Clean up
+# Strip binaries
+find "$PREFIX_USR" -type f \( -name "*.so" -o -perm -111 \) -exec "$STRIP" --strip-unneeded {} + || true
+
 cd ..
-echo "✅ Python 3.13 built with max optimizations! Output at: $PREFIX_USR"
 
-# 🎯 Strip binaries (reduce size)
-find $PREFIX_USR -type f \( -perm -111 -o -name "*.so" \) -exec strip --strip-unneeded {} +
+# Create DEB package structure
+mkdir -p "$DEB_DIR/DEBIAN"
+mkdir -p "$DEB_DIR/data/data/com.termux/files/usr"
+cp -a "$PREFIX_USR"/* "$DEB_DIR/data/data/com.termux/files/usr/"
 
-#####################################
-# 📦 Create .deb package 📦
-#####################################
-
-echo "📦 Creating DEB package for Termux..."
-
-PKG_NAME="python3.13"
-PKG_VERSION="$PYTHON_VERSION"
-ARCH="aarch64"
-DEB_DIR="$PWD/${PKG_NAME}_$PKG_VERSION"
-
-# 1. Create DEB folder structure
-rm -rf $DEB_DIR
-mkdir -p $DEB_DIR/DEBIAN
-mkdir -p $DEB_DIR/data/data/com.termux/files/usr
-
-# 2. Copy compiled files
-cp -a $PREFIX_USR/* $DEB_DIR/data/data/com.termux/files/usr/
-
-# 3. Create control file
-cat > $DEB_DIR/DEBIAN/control <<EOF
+# Create control file
+cat > "$DEB_DIR/DEBIAN/control" <<EOF
 Package: $PKG_NAME
-Version: $PKG_VERSION
+Version: $PYTHON_VERSION
 Architecture: $ARCH
-Maintainer: Cross-compiled by Shoaib Hassan
-Description: Highly optimized Python 3.13 cross-compiled for Termux aarch64.
+Maintainer: Termux Cross-Builder
+Description: Python $PYTHON_VERSION cross-compiled for Termux (aarch64)
 EOF
 
-# 4. Create empty postinst script
-cat > $DEB_DIR/DEBIAN/postinst <<EOF
-#!/bin/bash
-EOF
+chmod 0755 "$DEB_DIR/DEBIAN"
+chmod 0644 "$DEB_DIR/DEBIAN/control"
 
-# 5. Set correct permissions
-chmod 0755 $DEB_DIR/DEBIAN
-chmod 0644 $DEB_DIR/DEBIAN/control
-chmod 0755 $DEB_DIR/DEBIAN/postinst
+# Build DEB
+dpkg-deb --build "$DEB_DIR"
 
-# 6. Build .deb package
-dpkg-deb --build $DEB_DIR
-
-echo "✅ DEB package created: ${DEB_DIR}.deb"
+echo "✅ Done: DEB package created at ${DEB_DIR}.deb"
