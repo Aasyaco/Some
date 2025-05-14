@@ -1,7 +1,8 @@
 name: Build Python 3.13 for Termux (aarch64)
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
 
 jobs:
   build-python:
