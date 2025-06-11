@@ -1,0 +1,49 @@
+{
+  "facebook_apps": [
+    {
+      "name": "Facebook Lite",
+      "package": "com.facebook.lite",
+      "alias": "FB4A",
+      "app_id": "275254692598279",
+      "app_secret": "585aec5b4c27376758abb7ffcb9db2af"
+    },
+    {
+      "name": "Facebook for Android",
+      "package": "com.facebook.katana",
+      "alias": "FB4A",
+      "app_id": "350685531728",
+      "app_secret": "62f8ce9f74b12f84c123cc23437a4a32"
+    },
+    {
+      "name": "Facebook Messenger",
+      "package": "com.facebook.orca",
+      "alias": "Orca-Android",
+      "app_id": "256002347743983",
+      "app_secret": "374e60f8b9bb6b8cbb30f78030438895"
+    },
+    {
+      "name": "Messenger Lite",
+      "package": "com.facebook.mlite",
+      "alias": "MessengerLite",
+      "app_id": "200424423651082",
+      "app_secret": "2a9918c6bcd75b94cefcbb5635c6ad16"
+    },
+    {
+      "name": "Facebook for iPhone",
+      "package": "com.facebook.kanata",
+      "alias": "FBIOS",
+      "app_id": "6628568379",
+      "app_secret": "c1e620fa708a1d5696fb991c1bde5662"
+    },
+    {
+      "name": "Ads Manager for Android",
+      "app_id": "438142079694454",
+      "app_secret": "fc0a7caa49b192f64f6f5a6d9643bb28"
+    },
+    {
+      "name": "Messenger Kids",
+      "app_id": "1174099472704185",
+      "app_secret": "0722a7d5b5a4ac06b11450f7114eb2e9"
+    }
+  ]
+}
