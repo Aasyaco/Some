@@ -43,20 +43,16 @@ jobs:
           git clone --branch 3.13 --depth 1 https://github.com/python/cpython.git cpython-3.13
           ls cpython-3.13
 
-      # Checkout current repo (needed for Android directory)
-      - uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-
-      # Build using the Android directory
+      # Build using the Android directory inside cpython-3.13
       - name: Build and test
-        working-directory: ./Android
+        working-directory: ./cpython-3.13/Android
         run: ./android.py ci ${{ matrix.arch }}-linux-android
 
       # Compress existing output directories into a single zip
       - name: Zip build artifacts
         run: |
-          zip_name="android-${{ matrix.arch }}-artifacts.zip"
+          cd cpython-3.13/Android
+          zip_name="../../android-${{ matrix.arch }}-artifacts.zip"
           zip -r $zip_name lib bin include share || echo "Some directories may not exist"
 
       # Upload the zip as a single artifact
@@ -66,3 +62,4 @@ jobs:
           name: android-${{ matrix.arch }}-artifacts
           path: android-${{ matrix.arch }}-artifacts.zip
           if-no-files-found: ignore
+          
