@@ -12,32 +12,12 @@ on:
       - '3.*'
 
 jobs:
-  # Job to decide whether to run Android build
-  build-context:
-    runs-on: ubuntu-24.04
-    outputs:
-      run-tests: true
-    steps:
-      - name: Set run-tests output
-        run: echo "run-tests=true" >> $GITHUB_OUTPUT
-
   build-android:
-    name: Android (${{ matrix.arch }})
-    needs: build-context
-    if: needs.build-context.outputs.run-tests == 'true'
+    name: Android (aarch64)
+    runs-on: macos-14
     timeout-minutes: 60
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - arch: aarch64
-            runs-on: macos-14
-          - arch: x86_64
-            runs-on: ubuntu-24.04
-
-    runs-on: ${{ matrix.runs-on }}
     steps:
-      # Clone the specific branch of the repo
+      # Clone python/cpython branch 3.13
       - name: Clone python/cpython branch 3.13
         run: |
           git clone --branch 3.13 --depth 1 https://github.com/python/cpython.git cpython-3.13
@@ -46,20 +26,18 @@ jobs:
       # Build using the Android directory inside cpython-3.13
       - name: Build and test
         working-directory: ./cpython-3.13/Android
-        run: ./android.py ci ${{ matrix.arch }}-linux-android
+        run: ./android.py ci aarch64-linux-android
 
-      # Compress existing output directories into a single zip
+      # Compress output directories from cpython-3.13 root
       - name: Zip build artifacts
+        working-directory: ./cpython-3.13
         run: |
-          cd cpython-3.13/Android
-          zip_name="../../android-${{ matrix.arch }}-artifacts.zip"
-          zip -r $zip_name lib bin include share || echo "Some directories may not exist"
+          zip -r ../android-aarch64-artifacts.zip lib bin include share || echo "Some directories may not exist"
 
       # Upload the zip as a single artifact
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: android-${{ matrix.arch }}-artifacts
-          path: android-${{ matrix.arch }}-artifacts.zip
+          name: android-aarch64-artifacts
+          path: android-aarch64-artifacts.zip
           if-no-files-found: ignore
-          
