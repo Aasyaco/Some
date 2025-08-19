@@ -32,7 +32,7 @@ jobs:
       - name: Zip build artifacts
         working-directory: ./cpython-3.13
         run: |
-          zip -r ../android-aarch64-artifacts.zip lib bin include share || echo "Some directories may not exist"
+          zip -r ../android-aarch64-artifacts.zip lib bin include share build || echo "Some directories may not exist"
 
       # Upload the zip as a single artifact
       - name: Upload build artifacts
