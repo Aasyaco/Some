@@ -1,3 +1,4 @@
+
 name: Build Android
 
 on:
@@ -41,3 +42,34 @@ jobs:
           name: android-aarch64-artifacts
           path: android-aarch64-artifacts.zip
           if-no-files-found: ignore
+
+name: Build Python 3.13 for Termux (aarch64)
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-python:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Make build.sh executable
+      run: chmod +x ./build.sh
+
+    - name: Run build script
+      run: ./build.sh
+
+    - name: Upload DEB artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: python3.13-deb
+        path: python3.13_3.13.0.deb
+        
+
