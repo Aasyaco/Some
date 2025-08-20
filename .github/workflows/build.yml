@@ -1,3 +1,48 @@
+
+name: Build Android
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - '3.*'
+  pull_request:
+    branches:
+      - main
+      - '3.*'
+
+jobs:
+  build-android:
+    name: Android (aarch64)
+    runs-on: macos-14
+    timeout-minutes: 60
+    steps:
+      # Clone python/cpython branch 3.13
+      - name: Clone python/cpython branch 3.13
+        run: |
+          git clone --branch 3.13 --depth 1 https://github.com/python/cpython.git cpython-3.13
+          ls cpython-3.13
+
+      # Build using the Android directory inside cpython-3.13
+      - name: Build and test
+        working-directory: ./cpython-3.13/Android
+        run: ./android.py ci aarch64-linux-android
+
+      # Compress output directories from cpython-3.13 root
+      - name: Zip build artifacts
+        working-directory: ./cpython-3.13
+        run: |
+          zip -r ../android-aarch64-artifacts.zip cross-build || echo "Some directories may not exist"
+
+      # Upload the zip as a single artifact
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-aarch64-artifacts
+          path: android-aarch64-artifacts.zip
+          if-no-files-found: ignore
+
 name: Build Python 3.13 for Termux (aarch64)
 
 on:
@@ -27,3 +72,4 @@ jobs:
         name: python3.13-deb
         path: python3.13_3.13.0.deb
         
+
