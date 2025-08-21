@@ -20,6 +20,8 @@ jobs:
       # Clone python/cpython branch 3.13
       - name: Clone python/cpython branch 3.13
         run: |
+          export CC=clang
+          export CXX=clang++
           git clone --branch 3.13 --depth 1 https://github.com/python/cpython.git cpython-3.13
           ls cpython-3.13
 
