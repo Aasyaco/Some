@@ -30,12 +30,13 @@ jobs:
 
       # Package as .deb
       - name: Create Debian package
-        working-directory: ./cpython-3.13
         run: |
           PKG_NAME="pyv313"
           PKG_VERSION="3.13"
           ARCH="arm64"
           DEB_DIR="$PKG_NAME"
+
+          BUILD_DIR="/Users/runner/work/Some/Some/cpython-3.13/cross-build"
 
           # Create DEBIAN control directory
           mkdir -p $DEB_DIR/DEBIAN
@@ -49,7 +50,7 @@ jobs:
           Description: Python 3.13 cross-compiled for Termux aarch64
           EOF
 
-          # Post-install script (can add ldconfig or symlinks if needed)
+          # Post-install script
           cat > $DEB_DIR/DEBIAN/postinst <<'EOF'
           #!/bin/sh
           set -e
@@ -60,7 +61,7 @@ jobs:
 
           # Copy built files into package structure
           mkdir -p $DEB_DIR/usr
-          cp -r cross-build/prefix/* $DEB_DIR/usr/
+          cp -r $BUILD_DIR/prefix/* $DEB_DIR/usr/
 
           # Build the .deb
           dpkg-deb --build $DEB_DIR ${PKG_NAME}_${PKG_VERSION}_${ARCH}.deb
@@ -70,6 +71,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: pyv313-deb
-          path: cpython-3.13/pyv313_3.13_arm64.deb
+          path: pyv313_3.13_arm64.deb
           if-no-files-found: error
-          
