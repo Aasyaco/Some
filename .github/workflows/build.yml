@@ -27,7 +27,7 @@ jobs:
       # Build using the Android directory inside cpython-3.13
       - name: Build and test
         working-directory: ./cpython-3.13/Android
-        run: ./android.py ci aarch64-linux-android
+        run: ./android.py ci aarch64-linux-android --enable-optimizations
 
       # Package as .deb
       - name: Create Debian package
@@ -45,7 +45,7 @@ jobs:
           Package: $PKG_NAME
           Version: $PKG_VERSION
           Architecture: $ARCH
-          Maintainer: Cross-compiled by Shoaib Hassan
+          Maintainer: Cross-compiled by NotFound
           Description: Python 3.13 cross-compiled for Termux aarch64
           EOF
 
