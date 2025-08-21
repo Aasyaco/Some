@@ -30,12 +30,13 @@ jobs:
 
       # Package as .deb
       - name: Create Debian package
+        working-directory: .
         run: |
           PKG_NAME="pyv313"
           PKG_VERSION="3.13"
           ARCH="arm64"
           DEB_DIR="$PKG_NAME"
-          BUILD_DIR="/Users/runner/work/Some/Some/cpython-3.13/cross-build"
+          BUILD_DIR="./cpython-3.13/cross-build"
 
           mkdir -p $DEB_DIR/DEBIAN
 
