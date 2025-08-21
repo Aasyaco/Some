@@ -35,7 +35,7 @@ jobs:
         run: |
           PKG_NAME="pyv313"
           PKG_VERSION="3.13"
-          ARCH="arm64"
+          ARCH="aarch64"
           DEB_DIR="$PKG_NAME"
           BUILD_DIR="./cpython-3.13/cross-build/aarch64-linux-android"
 
@@ -74,6 +74,6 @@ jobs:
       - name: Upload Debian package
         uses: actions/upload-artifact@v4
         with:
-          name: pyv313-deb
-          path: pyv313_3.13_arm64.deb
+          name: pyv313
+          path: pyv313_3.13_aarch64.deb
           if-no-files-found: error
