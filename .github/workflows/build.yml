@@ -37,7 +37,7 @@ jobs:
           PKG_VERSION="3.13"
           ARCH="arm64"
           DEB_DIR="$PKG_NAME"
-          BUILD_DIR="./cpython-3.13/cross-build"
+          BUILD_DIR="./cpython-3.13/cross-build/aarch64-linux-android"
 
           mkdir -p $DEB_DIR/DEBIAN
 
