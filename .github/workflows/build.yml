@@ -28,16 +28,48 @@ jobs:
         working-directory: ./cpython-3.13/Android
         run: ./android.py ci aarch64-linux-android
 
-      # Compress output directories from cpython-3.13 root
-      - name: Zip build artifacts
+      # Package as .deb
+      - name: Create Debian package
         working-directory: ./cpython-3.13
         run: |
-          zip -r ../android-aarch64-artifacts.zip cross-build || echo "Some directories may not exist"
+          PKG_NAME="pyv313"
+          PKG_VERSION="3.13"
+          ARCH="arm64"
+          DEB_DIR="$PKG_NAME"
 
-      # Upload the zip as a single artifact
-      - name: Upload build artifacts
+          # Create DEBIAN control directory
+          mkdir -p $DEB_DIR/DEBIAN
+
+          # Control file
+          cat > $DEB_DIR/DEBIAN/control <<EOF
+          Package: $PKG_NAME
+          Version: $PKG_VERSION
+          Architecture: $ARCH
+          Maintainer: Cross-compiled by AHMAD
+          Description: Python 3.13 cross-compiled for Termux aarch64
+          EOF
+
+          # Post-install script (can add ldconfig or symlinks if needed)
+          cat > $DEB_DIR/DEBIAN/postinst <<'EOF'
+          #!/bin/sh
+          set -e
+          echo "pyv313 installed successfully!"
+          exit 0
+          EOF
+          chmod 755 $DEB_DIR/DEBIAN/postinst
+
+          # Copy built files into package structure
+          mkdir -p $DEB_DIR/usr
+          cp -r cross-build/prefix/* $DEB_DIR/usr/
+
+          # Build the .deb
+          dpkg-deb --build $DEB_DIR ${PKG_NAME}_${PKG_VERSION}_${ARCH}.deb
+
+      # Upload the .deb as an artifact
+      - name: Upload Debian package
         uses: actions/upload-artifact@v4
         with:
-          name: android-aarch64-artifacts
-          path: android-aarch64-artifacts.zip
-          if-no-files-found: ignore
+          name: pyv313-deb
+          path: cpython-3.13/pyv313_3.13_arm64.deb
+          if-no-files-found: error
+          
