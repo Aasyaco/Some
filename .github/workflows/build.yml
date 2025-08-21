@@ -40,7 +40,7 @@ jobs:
           BUILD_DIR="./cpython-3.13/cross-build/aarch64-linux-android"
 
           mkdir -p $DEB_DIR/DEBIAN
-
+          mkdir -p $DEB_DIR/usr
           cat > $DEB_DIR/DEBIAN/control <<EOF
           Package: $PKG_NAME
           Version: $PKG_VERSION
