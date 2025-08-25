@@ -20,14 +20,14 @@ jobs:
       # Clone python/cpython branch 3.13
       - name: Clone python/cpython branch 3.13
         run: |
-          brew install llvm lld dpkg;sudo sh -c 'echo "export CC=clang; export CXX=clang++" >> /etc/profile' && source /etc/profile
+          brew install llvm lld dpkg mpdecimal;sudo sh -c 'echo "export CC=clang; export CXX=clang++" >> /etc/profile' && source /etc/profile
           git clone --branch 3.13 --depth 1 https://github.com/python/cpython.git cpython-3.13
           ls cpython-3.13
 
       # Build using the Android directory inside cpython-3.13
       - name: Build and test
         working-directory: ./cpython-3.13/Android
-        run: ./android.py ci aarch64-linux-android;make test
+        run: ./android.py ci aarch64-linux-android
 
       # Package as .deb
       - name: Create Debian package
