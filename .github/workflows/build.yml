@@ -20,7 +20,7 @@ jobs:
       # Clone python/cpython branch 3.13
       - name: Clone python/cpython branch 3.13
         run: |
-          brew install llvm lld dpkg mpdecimal;sudo sh -c 'echo "export CC=clang; export CXX=clang++" >> /etc/profile' && source /etc/profile
+          brew install gdbm berkeley-db ncurses readline tk libuuid llvm lld dpkg mpdecimal;sudo sh -c 'echo "export CC=clang; export CXX=clang++" >> /etc/profile' && source /etc/profile
           git clone --branch 3.13 --depth 1 https://github.com/python/cpython.git cpython-3.13
           ls cpython-3.13
 
