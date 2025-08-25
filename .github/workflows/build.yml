@@ -23,6 +23,8 @@ jobs:
           brew install readline llvm lld dpkg mpdecimal;sudo sh -c 'echo "export CC=clang; export CXX=clang++" >> /etc/profile' && source /etc/profile
           git clone --branch 3.13 --depth 1 https://github.com/python/cpython.git cpython-3.13
           ls cpython-3.13
+          export CXX=clang++
+          export CC=clang
 
       # Build using the Android directory inside cpython-3.13
       - name: Build and test
