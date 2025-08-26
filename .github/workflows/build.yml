@@ -97,8 +97,7 @@ jobs:
           export CXX=clang++
           ls cpython-3.14
 
-      - name: Apply patch from URL
-        working-directory: ./cpython-3.14
+      # No patch step for 3.14
 
       - name: Build CPython for Android
         working-directory: ./cpython-3.14/Android
@@ -166,8 +165,7 @@ jobs:
           export CXX=clang++
           ls cpython-3.15
 
-      - name: Apply patch from URL
-        working-directory: ./cpython-3.15
+      # No patch step for 3.15
 
       - name: Build CPython for Android
         working-directory: ./cpython-3.15/Android
@@ -221,4 +219,3 @@ jobs:
           name: pyv315
           path: pyv315_3.15_aarch64.deb
           if-no-files-found: error
-          
