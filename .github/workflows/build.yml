@@ -25,6 +25,12 @@ jobs:
           ls cpython-3.13
           export CXX=clang++
           export CC=clang
+      - name: Apply patch from URL
+        working-directory: ./cpython-3.13
+        run: |
+          curl -L https://raw.githubusercontent.com/yubrajbhoi/termux-python/refs/heads/main/termux.patch -o termux.patch
+          git apply termux.patch
+          
 
       # Build using the Android directory inside cpython-3.13
       - name: Build and test
