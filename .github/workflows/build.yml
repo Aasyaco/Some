@@ -99,9 +99,6 @@ jobs:
 
       - name: Apply patch from URL
         working-directory: ./cpython-3.14
-        run: |
-          curl -L https://raw.githubusercontent.com/yubrajbhoi/termux-python/refs/heads/main/termux.patch -o termux.patch
-          git apply termux.patch
 
       - name: Build CPython for Android
         working-directory: ./cpython-3.14/Android
@@ -164,16 +161,13 @@ jobs:
       - name: Install dependencies & clone CPython
         run: |
           brew install readline llvm lld dpkg mpdecimal
-          git clone --branch 3.15 --depth 1 https://github.com/python/cpython.git cpython-3.15
+          git clone --branch main --depth 1 https://github.com/python/cpython.git cpython-3.15
           export CC=clang
           export CXX=clang++
           ls cpython-3.15
 
       - name: Apply patch from URL
         working-directory: ./cpython-3.15
-        run: |
-          curl -L https://raw.githubusercontent.com/yubrajbhoi/termux-python/refs/heads/main/termux.patch -o termux.patch
-          git apply termux.patch
 
       - name: Build CPython for Android
         working-directory: ./cpython-3.15/Android
