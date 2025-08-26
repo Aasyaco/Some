@@ -27,14 +27,9 @@ jobs:
           export CC=clang
 
       # Build using the Android directory inside cpython-3.13
-      - name: Disable Windows modules
-        working-directory: ./cpython-3.13
-        run: |
-          echo "# Disable Windows-only modules" > Modules/Setup.local
-          echo "# msvcrt is Windows only" >> Modules/Setup.local
       - name: Build and test
         working-directory: ./cpython-3.13/Android
-        run: ./android.py ci aarch64-linux-android;python3.13 --version
+        run: ./android.py ci aarch64-linux-android -- --without-pyrepl;python3.13 --version
 
       # Package as .deb
       - name: Create Debian package
