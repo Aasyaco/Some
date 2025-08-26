@@ -34,7 +34,7 @@ jobs:
       - name: Build CPython for Android
         working-directory: ./cpython-3.13/Android
         run: |
-          ./android.py ci aarch64-linux-android -- --enable-optimizations
+          ./android.py ci aarch64-linux-android
           ../cross-build/aarch64-linux-android/build/python -V || true
 
       - name: Package as .deb
@@ -106,7 +106,7 @@ jobs:
       - name: Build CPython for Android
         working-directory: ./cpython-3.14/Android
         run: |
-          ./android.py ci aarch64-linux-android -- --enable-optimizations
+          ./android.py ci aarch64-linux-android
           ../cross-build/aarch64-linux-android/build/python -V || true
 
       - name: Package as .deb
@@ -178,7 +178,7 @@ jobs:
       - name: Build CPython for Android
         working-directory: ./cpython-3.15/Android
         run: |
-          ./android.py ci aarch64-linux-android -- --enable-optimizations
+          ./android.py ci aarch64-linux-android
           ../cross-build/aarch64-linux-android/build/python -V || true
 
       - name: Package as .deb
