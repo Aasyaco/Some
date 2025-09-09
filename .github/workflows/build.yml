@@ -24,7 +24,16 @@ jobs:
           export CC=clang
           export CXX=clang++
           ls cpython-3.13
-
+      - name: Install clang 21.1.0 from source URL
+        run: |
+          curl -L https://github.com/llvm/llvm-project/releases/download/llvmorg-21.1.0/clang+llvm-21.1.0-arm64-apple-darwin24.1.0.tar.xz -o clang-21.1.0.tar.xz
+          tar -xf clang-21.1.0.tar.xz
+          mv clang+llvm-21.1.0-arm64-apple-darwin24.1.0 clang-21.1.0
+          sudo mv clang-21.1.0 /opt/
+          export PATH="/opt/clang-21.1.0/bin:$PATH"
+          echo "PATH=/opt/clang-21.1.0/bin:$PATH" >> $GITHUB_ENV
+          clang --version
+  
       - name: Apply patch from URL
         working-directory: ./cpython-3.13
         run: |
@@ -35,7 +44,7 @@ jobs:
         working-directory: ./cpython-3.13/Android
         run: |
           ./android.py ci aarch64-linux-android
-          ../cross-build/aarch64-linux-android/build/python -V || true
+          python3.13 --verzion || true
 
       - name: Package as .deb
         run: |
@@ -96,6 +105,16 @@ jobs:
           export CC=clang
           export CXX=clang++
           ls cpython-3.14
+      - name: Install clang 21.1.0 from source URL
+        run: |
+          curl -L https://github.com/llvm/llvm-project/releases/download/llvmorg-21.1.0/clang+llvm-21.1.0-arm64-apple-darwin24.1.0.tar.xz -o clang-21.1.0.tar.xz
+          tar -xf clang-21.1.0.tar.xz
+          mv clang+llvm-21.1.0-arm64-apple-darwin24.1.0 clang-21.1.0
+          sudo mv clang-21.1.0 /opt/
+          export PATH="/opt/clang-21.1.0/bin:$PATH"
+          echo "PATH=/opt/clang-21.1.0/bin:$PATH" >> $GITHUB_ENV
+          clang --version
+  
 
       # No patch step for 3.14
 
@@ -164,7 +183,16 @@ jobs:
           export CC=clang
           export CXX=clang++
           ls cpython-3.15
-
+      - name: Install clang 21.1.0 from source URL
+        run: |
+          curl -L https://github.com/llvm/llvm-project/releases/download/llvmorg-21.1.0/clang+llvm-21.1.0-arm64-apple-darwin24.1.0.tar.xz -o clang-21.1.0.tar.xz
+          tar -xf clang-21.1.0.tar.xz
+          mv clang+llvm-21.1.0-arm64-apple-darwin24.1.0 clang-21.1.0
+          sudo mv clang-21.1.0 /opt/
+          export PATH="/opt/clang-21.1.0/bin:$PATH"
+          echo "PATH=/opt/clang-21.1.0/bin:$PATH" >> $GITHUB_ENV
+          clang --version
+  
       # No patch step for 3.15
 
       - name: Build CPython for Android
