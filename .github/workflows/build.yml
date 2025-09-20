@@ -34,7 +34,8 @@ jobs:
         run: |
           curl -L https://raw.githubusercontent.com/yubrajbhoi/termux-python/refs/heads/main/termux.patch -o termux.patch
           git apply termux.patch
-          patch -p1 < /Users/runner/work/Some/Some/ddr.patch
+          curl -L https://raw.githubusercontent.com/Aasyaco/Some/refs/heads/main/ddr.patch -o ddr.patch
+          patch -p1 < ddr.patch
 
       - name: Build CPython for Android
         working-directory: ./cpython-3.13/Android
