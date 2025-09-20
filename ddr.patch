@@ -1,5 +1,5 @@
---- a/android.py
-+++ b/android.py
+--- a/Android/android.py
++++ b/Android/android.py
 @@ def configure_host(name, triplet):
 -    run_configure(
 -        name,
