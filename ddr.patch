@@ -1,64 +1,11 @@
 --- a/Android/android.py
 +++ b/Android/android.py
-@@ def configure_host(name, triplet):
--    run_configure(
--        name,
--        builddir,
--        prefix=prefix,
--        host=triplet,
--        builddir_native=Path("build") / "build-build",
--    )
-+    run_configure(
-+        name,
-+        builddir,
-+        prefix=prefix,
-+        host=triplet,
-+        builddir_native=Path("build") / "build-build",
-+        extra_args=[
-+            "--enable-optimizations",   # enables PGO + LTO
-+            "--with-lto",               # link-time optimization
-+            "--with-pgo",               # profile-guided optimization
-+            "CFLAGS=-O3 -march=armv8-a -mtune=cortex-a76 -fomit-frame-pointer",
-+            "CXXFLAGS=-O3 -march=armv8-a -mtune=cortex-a76 -fomit-frame-pointer",
-+            "LDFLAGS=-Wl,-O1 -Wl,--as-needed -Wl,--strip-all",
-+        ],
-+    )
- 
- def make_host(name):
-     builddir = Path("build") / name / "build"
--    run("make", "-j", str(os.cpu_count()), cwd=builddir)
--    run("make", "install", cwd=builddir)
--
--    # Strip python3 binary
--    prefix = Path("build") / name / "prefix"
--    python_bin = prefix / "bin" / "python3"
--    if python_bin.exists():
--        run("llvm-strip", "--strip-all", str(python_bin))
-+    # First build with profile generation
-+    run("make", "-j", str(os.cpu_count()), "profile-gen", cwd=builddir)
-+    # Run tests to generate profiling data (minimal set for Android)
-+    run("make", "test", cwd=builddir)
-+    # Rebuild with PGO applied
-+    run("make", "-j", str(os.cpu_count()), "profile-use", cwd=builddir)
-+    run("make", "install", cwd=builddir)
-+
-+    # Strip python3 binary
-+    prefix = Path("build") / name / "prefix"
-+    python_bin = prefix / "bin" / "python3"
-+    if python_bin.exists():
-+        run("llvm-strip", "--strip-all", str(python_bin))
- 
- def package(name):
-     prefix = Path("build") / name / "prefix"
-     tarpath = Path("dist") / f"python-android-{name}.tar.gz"
-     tarpath.parent.mkdir(parents=True, exist_ok=True)
--    with tarfile.open(tarpath, "w:gz") as tar:
--        tar.add(prefix, arcname=f"python-android-{name}")
--    print(f"Packaged {tarpath}")
-+    # Strip all .so files before packaging
-+    for sofile in prefix.rglob("*.so"):
-+        run("llvm-strip", "--strip-all", str(sofile))
-+
-+    with tarfile.open(tarpath, "w:gz") as tar:
-+        tar.add(prefix, arcname=f"python-android-{name}")
-+    print(f"Packaged {tarpath}")
+@@ -176,7 +176,8 @@
+-    command = [relpath(PYTHON_DIR / "configure")]
++    command = [relpath(PYTHON_DIR / "configure"), "--enable-optimizations"]
+@@ -224,7 +225,8 @@
+-        "--enable-shared",
+-        "--without-static-libpython",
++        "--enable-shared",
++        "--without-static-libpython",
++        "--enable-optimizations",
