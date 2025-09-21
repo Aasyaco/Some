@@ -1,11 +1,13 @@
 --- a/Android/android.py
 +++ b/Android/android.py
-@@ -176,7 +176,8 @@
+@@ -176,7 +176,10 @@
 -    command = [relpath(PYTHON_DIR / "configure")]
++    # Add --enable-optimizations to configure for build Python
 +    command = [relpath(PYTHON_DIR / "configure"), "--enable-optimizations"]
-@@ -224,7 +225,8 @@
+@@ -224,7 +227,10 @@
 -        "--enable-shared",
 -        "--without-static-libpython",
 +        "--enable-shared",
 +        "--without-static-libpython",
++        # Add --enable-optimizations to configure for host Python
 +        "--enable-optimizations",
