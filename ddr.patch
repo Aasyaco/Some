@@ -1,13 +1,19 @@
 --- a/Android/android.py
 +++ b/Android/android.py
-@@ -176,7 +176,10 @@
+@@ -176,7 +176,8 @@
 -    command = [relpath(PYTHON_DIR / "configure")]
-+    # Add --enable-optimizations to configure for build Python
 +    command = [relpath(PYTHON_DIR / "configure"), "--enable-optimizations"]
-@@ -224,7 +227,10 @@
+     if context.args:
+         command.extend(context.args)
+     run(command)
+@@ -224,8 +225,10 @@
+         # Android always uses a shared libpython.
 -        "--enable-shared",
 -        "--without-static-libpython",
 +        "--enable-shared",
 +        "--without-static-libpython",
-+        # Add --enable-optimizations to configure for host Python
 +        "--enable-optimizations",
+ 
+         # Dependent libraries. The others are found using pkg-config: see
+         # android-env.sh.
+         f"--with-openssl={prefix_dir}",
