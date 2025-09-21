@@ -37,6 +37,7 @@ jobs:
           git apply termux.patch
           ls /Users/runner/work/Some/**
           cp ./android.py ./Android/android.py
+          export PGEN_DISABLED=1
 
       - name: Build CPython for Android
         working-directory: ./cpython-3.13/Android
