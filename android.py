@@ -174,7 +174,7 @@ def configure_build_python(context):
     os.chdir(subdir("build", create=True))
 
     # PATCH: Add --enable-optimizations to configure
-    command = [relpath(PYTHON_DIR / "configure"), "--enable-optimizations"]
+    command = [relpath(PYTHON_DIR / "configure"), "--enable-optimizations","--with-pgo"]
     if context.args:
         command.extend(context.args)
     run(command)
@@ -223,6 +223,7 @@ def configure_host_python(context):
 
         # Android always uses a shared libpython.
         "--enable-shared",
+        "--with-pgo"
         "--without-static-libpython",
 
         # PATCH: Add --enable-optimizations
