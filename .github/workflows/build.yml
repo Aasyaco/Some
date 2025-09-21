@@ -42,6 +42,8 @@ jobs:
       - name: Build CPython for Android
         working-directory: ./cpython-3.13/Android
         run: |
+          ./android.py clean aarch64-linux-android
+          rm -rf cross-build/build/*.profclangr
           ./android.py ci aarch64-linux-android
           python3.13 -c "print(__import__('sys').version)" || echo 'Python not found'
 
