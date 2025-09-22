@@ -65,7 +65,7 @@ jobs:
           AR=aarch64-linux-android-ar \
           RANLIB=aarch64-linux-android-ranlib \
           ./configure --prefix=$PREFIX --static
-          make -j$(nproc)
+          make -j$(sysctl -n hw.logicalcpu)
           make install
           cd $PREFIX
           export LDFLAGS="-L$PREFIX/bzip2-1.0.8-3/lib -L$PREFIX/xz-5.4.6-1/lib -L$PREFIX/lib"
