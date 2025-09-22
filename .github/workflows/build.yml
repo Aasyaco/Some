@@ -23,6 +23,9 @@ jobs:
       CC: clang
       CXX: clang++
     steps:
+      - name: Ensure Homebrew is in PATH
+        run: echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> $GITHUB_ENV
+
       - name: Install dependencies & clone CPython
         run: |
           brew install readline lld dpkg mpdecimal llvm@21
@@ -107,6 +110,9 @@ jobs:
       CC: clang
       CXX: clang++
     steps:
+      - name: Ensure Homebrew is in PATH
+        run: echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> $GITHUB_ENV
+
       - name: Install dependencies & clone CPython
         run: |
           brew install readline lld dpkg mpdecimal llvm@21
@@ -181,6 +187,9 @@ jobs:
       CC: clang
       CXX: clang++
     steps:
+      - name: Ensure Homebrew is in PATH
+        run: echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> $GITHUB_ENV
+
       - name: Install dependencies & clone CPython
         run: |
           brew install readline lld dpkg mpdecimal llvm@21
