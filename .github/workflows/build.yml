@@ -54,6 +54,7 @@ jobs:
           mkdir -p ../cross-build/build
           ./android.py clean || true
           find ../cross-build/build -name "*.profclangr" -delete || true
+          ./android.py configure-build --without-bz2 --without-lzma --without-ensurepip;./android.py make-build
           ./android.py ci aarch64-linux-android
           python3.13 -c "import sys; print(sys.version)" || echo 'Python not found'
 
