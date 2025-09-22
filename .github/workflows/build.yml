@@ -14,30 +14,46 @@ on:
 jobs:
   build-android-313:
     name: Android (aarch64) Python 3.13
-    runs-on: macos-14
+    runs-on: ubuntu-22.04
     timeout-minutes: 60
     env:
-      PATH: /opt/homebrew/opt/llvm@21/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
-      LDFLAGS: -L/opt/homebrew/opt/llvm@21/lib
-      CPPFLAGS: -I/opt/homebrew/opt/llvm@21/include
+      PATH: /usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
       CC: clang
       CXX: clang++
-    steps:
-      - name: Ensure Homebrew is in PATH
-        run: |
-          echo "HOMEBREW_PREFIX=/opt/homebrew" >> $GITHUB_ENV
-          echo "HOMEBREW_CELLAR=/opt/homebrew/Cellar" >> $GITHUB_ENV
-          echo "HOMEBREW_REPOSITORY=/opt/homebrew" >> $GITHUB_ENV
-          echo "/opt/homebrew/bin" >> $GITHUB_PATH
-          echo "/opt/homebrew/sbin" >> $GITHUB_PATH
 
-      - name: Install dependencies & clone CPython
+    steps:
+      - name: Checkout CPython
         run: |
-          brew install readline lld dpkg mpdecimal llvm@21
-          brew link llvm@21 --force
           git clone --branch 3.13 --depth 1 https://github.com/python/cpython.git cpython-3.13
           ls cpython-3.13
-          clang --version
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential lld dpkg curl git
+
+      - name: Download NDK r20b
+        run: |
+          curl -LO https://dl.google.com/android/repository/android-ndk-r20b-linux-x86_64.zip
+          unzip -q android-ndk-r20b-linux-x86_64.zip
+          ls android-ndk-r20b
+
+      - name: Build zlib (static)
+        run: |
+          git clone https://github.com/madler/zlib.git -b v1.2.13 --depth=1
+          export TOOLCHAIN=$PWD/android-ndk-r20b/toolchains/llvm/prebuilt/linux-x86_64
+          export AR=$TOOLCHAIN/bin/aarch64-linux-android-ar
+          export AS=$TOOLCHAIN/bin/aarch64-linux-android-as
+          export CC=$TOOLCHAIN/bin/aarch64-linux-android21-clang
+          export CXX=$TOOLCHAIN/bin/aarch64-linux-android21-clang++
+          export LD=$TOOLCHAIN/bin/aarch64-linux-android-ld
+          export RANLIB=$TOOLCHAIN/bin/aarch64-linux-android-ranlib
+          export STRIP=$TOOLCHAIN/bin/aarch64-linux-android-strip
+          cd zlib
+          ./configure --static --prefix=$PWD/out
+          make -j$(nproc)
+          make install
+          ls -R out
 
       - name: Apply patch and prepare Android scripts
         working-directory: ./cpython-3.13
@@ -48,40 +64,26 @@ jobs:
           mkdir -p Android
           cp android.py Android/
 
-      - name: Install bzip2/xz for cross compilation
-        working-directory: ./cpython-3.13/cross-build
-        run: |
-          mkdir -p aarch64-linux-android/prefix
-          cd aarch64-linux-android/prefix
-          curl -LO https://github.com/beeware/cpython-android-source-deps/releases/download/bzip2-1.0.8-3/bzip2-1.0.8-3-aarch64-linux-android.tar.gz
-          curl -LO https://github.com/beeware/cpython-android-source-deps/releases/download/xz-5.4.6-1/xz-5.4.6-1-aarch64-linux-android.tar.gz
-          tar -xzf bzip2-1.0.8-3-aarch64-linux-android.tar.gz
-          tar -xzf xz-5.4.6-1-aarch64-linux-android.tar.gz
-          export LDFLAGS="-L$PWD/lib"
-          export CPPFLAGS="-I$PWD/include"
-
       - name: Build CPython for Android
         working-directory: ./cpython-3.13/Android
         run: |
+          PREFIX=$PWD/../cross-build/aarch64-linux-android/prefix
+          mkdir -p $PREFIX
+          export TOOLCHAIN=$GITHUB_WORKSPACE/android-ndk-r20b/toolchains/llvm/prebuilt/linux-x86_64
+          export CC=$TOOLCHAIN/bin/aarch64-linux-android21-clang
+          export CXX=$TOOLCHAIN/bin/aarch64-linux-android21-clang++
+          export AR=$TOOLCHAIN/bin/aarch64-linux-android-ar
+          export RANLIB=$TOOLCHAIN/bin/aarch64-linux-android-ranlib
+          export STRIP=$TOOLCHAIN/bin/aarch64-linux-android-strip
+          export CPPFLAGS="-I$GITHUB_WORKSPACE/zlib/out/include"
+          export LDFLAGS="-L$GITHUB_WORKSPACE/zlib/out/lib"
           mkdir -p ../cross-build/build
           ./android.py clean || true
-          find ../cross-build/build -name "*.profclangr" -delete || true
-          ./android.py ci aarch64-linux-android
-          python3.13 -c "import sys; print(sys.version)" || echo 'Python not found'
-          
-      - name: Build CPython for Android
-        working-directory: ./cpython-3.13/Android
-        run: |
-          mkdir -p ../cross-build/build
-          ./android.py clean || true
-          find ../cross-build/build -name "*.profclangr" -delete || true
           ./android.py ci aarch64-linux-android
           python3.13 -c "import sys; print(sys.version)" || echo 'Python not found'
 
       - name: Package as .deb
         run: |
-          export CPPFLAGS="-I/opt/homebrew/opt/llvm@21/include"
-          export LDFLAGS="-L/opt/homebrew/opt/llvm@21/lib -L/opt/homebrew/opt/llvm@21/lib/unwind -L/opt/homebrew/opt/llvm@21/lib/c++ -lunwind"
           PKG_NAME="pyv313"
           PKG_VERSION="3.13"
           ARCH="aarch64"
@@ -94,7 +96,7 @@ jobs:
           Package: $PKG_NAME
           Version: $PKG_VERSION
           Architecture: $ARCH
-          Maintainer: Cross-compiled by NotFound
+          Maintainer: Cross-compiled by GitHub Actions
           Description: Python 3.13 cross-compiled for Termux aarch64
           EOF
 
