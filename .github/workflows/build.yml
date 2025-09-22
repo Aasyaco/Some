@@ -24,12 +24,11 @@ jobs:
       CXX: clang++
     steps:
       - name: Ensure Homebrew is in PATH
-        run: |
-          echo "HOMEBREW_PREFIX=/opt/homebrew" >> $GITHUB_ENV
-          echo "HOMEBREW_CELLAR=/opt/homebrew/Cellar" >> $GITHUB_ENV
-          echo "HOMEBREW_REPOSITORY=/opt/homebrew" >> $GITHUB_ENV
-          echo "/opt/homebrew/bin" >> $GITHUB_PATH
-          echo "/opt/homebrew/sbin" >> $GITHUB_PATH
+        run: echo "HOMEBREW_PREFIX=/opt/homebrew" >> $GITHUB_ENV && \
+             echo "HOMEBREW_CELLAR=/opt/homebrew/Cellar" >> $GITHUB_ENV && \
+             echo "HOMEBREW_REPOSITORY=/opt/homebrew" >> $GITHUB_ENV && \
+             echo "/opt/homebrew/bin" >> $GITHUB_PATH && \
+             echo "/opt/homebrew/sbin" >> $GITHUB_PATH
 
       - name: Install dependencies & clone CPython
         run: |
@@ -45,17 +44,18 @@ jobs:
           curl -L https://raw.githubusercontent.com/yubrajbhoi/termux-python/refs/heads/main/termux.patch -o termux.patch
           curl -L https://raw.githubusercontent.com/Aasyaco/Some/refs/heads/main/android.py -o android.py
           git apply termux.patch
-          ls /Users/runner/work/Some/**
           cp ./android.py ./Android/android.py
           export PGEN_DISABLED=1
 
       - name: Build CPython for Android
         working-directory: ./cpython-3.13/Android
         run: |
-          ./android.py clean
-          find ../cross-build/build -name "*.profclangr" -delete
-          ./android.py ci aarch64-linux-android
-          python3.13 -c "print(__import__('sys').version)" || echo 'Python not found'
+          ls ../
+          #mkdir -p ../cross-build/build
+          #./android.py clean || true
+         # find ../cross-build/build -name "*.profclangr" -delete || true
+          #./android.py ci aarch64-linux-android
+         # python3.13 -c "import sys; print(sys.version)" || echo 'Python not found'
 
       - name: Package as .deb
         run: |
@@ -102,164 +102,4 @@ jobs:
         with:
           name: pyv313
           path: pyv313_3.13_aarch64.deb
-          if-no-files-found: error
-
-  build-android-314:
-    name: Android (aarch64) Python 3.14
-    runs-on: macos-14
-    timeout-minutes: 60
-    env:
-      PATH: /opt/homebrew/opt/llvm@21/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
-      LDFLAGS: -L/opt/homebrew/opt/llvm@21/lib
-      CPPFLAGS: -I/opt/homebrew/opt/llvm@21/include
-      CC: clang
-      CXX: clang++
-    steps:
-      - name: Ensure Homebrew is in PATH
-        run: |
-          echo "HOMEBREW_PREFIX=/opt/homebrew" >> $GITHUB_ENV
-          echo "HOMEBREW_CELLAR=/opt/homebrew/Cellar" >> $GITHUB_ENV
-          echo "HOMEBREW_REPOSITORY=/opt/homebrew" >> $GITHUB_ENV
-          echo "/opt/homebrew/bin" >> $GITHUB_PATH
-          echo "/opt/homebrew/sbin" >> $GITHUB_PATH
-
-      - name: Install dependencies & clone CPython
-        run: |
-          brew install readline lld dpkg mpdecimal llvm@21
-          brew link llvm@21 --force
-          git clone --branch 3.14 --depth 1 https://github.com/python/cpython.git cpython-3.14
-          ls cpython-3.14
-          clang --version
-
-      - name: Build CPython for Android
-        working-directory: ./cpython-3.14/Android
-        run: |
-          ./android.py ci aarch64-linux-android
-          python3.13 -c "print(__import__('sys').version)" || echo 'Python not found'
-
-      - name: Package as .deb
-        run: |
-          export CPPFLAGS="-I/opt/homebrew/opt/llvm@21/include"
-          export LDFLAGS="-L/opt/homebrew/opt/llvm@21/lib -L/opt/homebrew/opt/llvm@21/lib/unwind -L/opt/homebrew/opt/llvm@21/lib/c++ -lunwind"
-          PKG_NAME="pyv314"
-          PKG_VERSION="3.14"
-          ARCH="aarch64"
-          DEB_DIR="$PKG_NAME"
-          BUILD_DIR="./cpython-3.14/cross-build/aarch64-linux-android"
-
-          mkdir -p $DEB_DIR/DEBIAN
-          mkdir -p $DEB_DIR/usr
-          cat > $DEB_DIR/DEBIAN/control <<EOF
-          Package: $PKG_NAME
-          Version: $PKG_VERSION
-          Architecture: $ARCH
-          Maintainer: Cross-compiled by NotFound
-          Description: Python 3.14 cross-compiled for Termux aarch64
-          EOF
-
-          cat > $DEB_DIR/DEBIAN/postinst <<'EOF'
-          #!/bin/sh
-          set -e
-          echo "pyv314 installed successfully!"
-          exit 0
-          EOF
-          chmod 755 $DEB_DIR/DEBIAN/postinst
-
-          if [ -d "$BUILD_DIR/prefix" ]; then
-            cp -r $BUILD_DIR/prefix/* $DEB_DIR/usr/
-          elif [ -d "$BUILD_DIR/install" ]; then
-            cp -r $BUILD_DIR/install/* $DEB_DIR/usr/
-          else
-            ls $BUILD_DIR
-            echo "No prefix/ or install/ directory found in $BUILD_DIR"
-            exit 1
-          fi
-
-          dpkg-deb --build $DEB_DIR ${PKG_NAME}_${PKG_VERSION}_${ARCH}.deb
-
-      - name: Upload Debian package
-        uses: actions/upload-artifact@v4
-        with:
-          name: pyv314
-          path: pyv314_3.14_aarch64.deb
-          if-no-files-found: error
-
-  build-android-315:
-    name: Android (aarch64) Python 3.15
-    runs-on: macos-14
-    timeout-minutes: 60
-    env:
-      PATH: /opt/homebrew/opt/llvm@21/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
-      LDFLAGS: -L/opt/homebrew/opt/llvm@21/lib
-      CPPFLAGS: -I/opt/homebrew/opt/llvm@21/include
-      CC: clang
-      CXX: clang++
-    steps:
-      - name: Ensure Homebrew is in PATH
-        run: |
-          echo "HOMEBREW_PREFIX=/opt/homebrew" >> $GITHUB_ENV
-          echo "HOMEBREW_CELLAR=/opt/homebrew/Cellar" >> $GITHUB_ENV
-          echo "HOMEBREW_REPOSITORY=/opt/homebrew" >> $GITHUB_ENV
-          echo "/opt/homebrew/bin" >> $GITHUB_PATH
-          echo "/opt/homebrew/sbin" >> $GITHUB_PATH
-
-      - name: Install dependencies & clone CPython
-        run: |
-          brew install readline lld dpkg mpdecimal llvm@21
-          brew link llvm@21 --force
-          git clone --branch main --depth 1 https://github.com/python/cpython.git cpython-3.15
-          ls cpython-3.15
-          clang --version
-
-      - name: Build CPython for Android
-        working-directory: ./cpython-3.15/Android
-        run: |
-          ./android.py ci aarch64-linux-android
-          python3.13 -c "print(__import__('sys').version)" || echo 'Python not found'
-
-      - name: Package as .deb
-        run: |
-          export CPPFLAGS="-I/opt/homebrew/opt/llvm@21/include"
-          export LDFLAGS="-L/opt/homebrew/opt/llvm@21/lib -L/opt/homebrew/opt/llvm@21/lib/unwind -L/opt/homebrew/opt/llvm@21/lib/c++ -lunwind"
-          PKG_NAME="pyv315"
-          PKG_VERSION="3.15"
-          ARCH="aarch64"
-          DEB_DIR="$PKG_NAME"
-          BUILD_DIR="./cpython-3.15/cross-build/aarch64-linux-android"
-
-          mkdir -p $DEB_DIR/DEBIAN
-          mkdir -p $DEB_DIR/usr
-          cat > $DEB_DIR/DEBIAN/control <<EOF
-          Package: $PKG_NAME
-          Version: $PKG_VERSION
-          Architecture: $ARCH
-          Maintainer: Cross-compiled by NotFound
-          Description: Python 3.15 cross-compiled for Termux aarch64
-          EOF
-
-          cat > $DEB_DIR/DEBIAN/postinst <<'EOF'
-          #!/bin/sh
-          set -e
-          echo "pyv315 installed successfully!"
-          exit 0
-          EOF
-          chmod 755 $DEB_DIR/DEBIAN/postinst
-
-          if [ -d "$BUILD_DIR/prefix" ]; then
-            cp -r $BUILD_DIR/prefix/* $DEB_DIR/usr/
-          elif [ -d "$BUILD_DIR/install" ]; then
-            cp -r $BUILD_DIR/install/* $DEB_DIR/usr/
-          else
-            ls $BUILD_DIR
-            echo "No prefix/ or install/ directory found in $BUILD_DIR"
-            exit 1
-          fi
-
-          dpkg-deb --build $DEB_DIR ${PKG_NAME}_${PKG_VERSION}_${ARCH}.deb
-
-      - name: Upload Debian package
-        uses: actions/upload-artifact@v4
-        with:
-          name: pyv315
-          path: pyv315_3.15_aarch64.deb
           if-no-files-found: error
