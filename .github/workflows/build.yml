@@ -48,24 +48,36 @@ jobs:
           mkdir -p Android
           cp android.py Android/
 
-      - name: Install bzip2/xz for cross compilation
-        working-directory: ./cpython-3.13/cross-build
+      - name: Install cross-compiled libraries
+        working-directory: ./cpython-3.13
         run: |
-          mkdir -p aarch64-linux-android/prefix
-          cd aarch64-linux-android/prefix
-          curl -LO https://github.com/beeware/cpython-android-source-deps/releases/download/bzip2-1.0.8-3/bzip2-1.0.8-3-aarch64-linux-android.tar.gz
-          curl -LO https://github.com/beeware/cpython-android-source-deps/releases/download/xz-5.4.6-1/xz-5.4.6-1-aarch64-linux-android.tar.gz
+          PREFIX="$PWD/cross-build/aarch64-linux-android/prefix"
+          mkdir -p $PREFIX
+          cd $PREFIX
+          curl -L -O https://github.com/beeware/cpython-android-source-deps/releases/download/bzip2-1.0.8-3/bzip2-1.0.8-3-aarch64-linux-android.tar.gz
           tar -xzf bzip2-1.0.8-3-aarch64-linux-android.tar.gz
+          curl -L -O https://github.com/beeware/cpython-android-source-deps/releases/download/xz-5.4.6-1/xz-5.4.6-1-aarch64-linux-android.tar.gz
           tar -xzf xz-5.4.6-1-aarch64-linux-android.tar.gz
-          export LDFLAGS="-L$PWD/lib"
-          export CPPFLAGS="-I$PWD/include"
+          curl -L -O https://zlib.net/zlib-1.2.13.tar.gz
+          tar -xzf zlib-1.2.13.tar.gz
+          cd zlib-1.2.13
+          CC=/Users/runner/Library/Android/sdk/ndk/27.3.13750724/toolchains/llvm/prebuilt/darwin-x86_64/bin/aarch64-linux-android21-clang \
+          AR=aarch64-linux-android-ar \
+          RANLIB=aarch64-linux-android-ranlib \
+          ./configure --prefix=$PREFIX
+          make -j$(nproc)
+          make install
+          cd $PREFIX
+          export LDFLAGS="-L$PREFIX/bzip2-1.0.8-3/lib -L$PREFIX/xz-5.4.6-1/lib -L$PREFIX/lib"
+          export CPPFLAGS="-I$PREFIX/bzip2-1.0.8-3/include -I$PREFIX/xz-5.4.6-1/include -I$PREFIX/include"
+          export PKG_CONFIG_PATH="$PREFIX/bzip2-1.0.8-3/lib/pkgconfig:$PREFIX/xz-5.4.6-1/lib/pkgconfig:$PREFIX/lib/pkgconfig"
+
 
       - name: Build CPython for Android
         working-directory: ./cpython-3.13/Android
         run: |
           mkdir -p ../cross-build/build
           ./android.py clean || true
-          find ../cross-build/build -name "*.profclangr" -delete || true
           ./android.py ci aarch64-linux-android
           python3.13 -c "import sys; print(sys.version)" || echo 'Python not found'
           
@@ -74,7 +86,6 @@ jobs:
         run: |
           mkdir -p ../cross-build/build
           ./android.py clean || true
-          find ../cross-build/build -name "*.profclangr" -delete || true
           ./android.py ci aarch64-linux-android
           python3.13 -c "import sys; print(sys.version)" || echo 'Python not found'
 
