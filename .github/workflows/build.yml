@@ -58,9 +58,9 @@ jobs:
           tar -xzf bzip2-1.0.8-3-aarch64-linux-android.tar.gz
           curl -L -O https://github.com/beeware/cpython-android-source-deps/releases/download/xz-5.4.6-1/xz-5.4.6-1-aarch64-linux-android.tar.gz
           tar -xzf xz-5.4.6-1-aarch64-linux-android.tar.gz
-          curl -L -O https://zlib.net/zlib-1.2.13.tar.gz
-          tar -xzf zlib-1.2.13.tar.gz
-          cd zlib-1.2.13
+          curl -L -O https://zlib.net/current/zlib.tar.gz
+          tar -xzf zlib.tar.gz
+          cd zlib-1.3.1
           CC=/Users/runner/Library/Android/sdk/ndk/27.3.13750724/toolchains/llvm/prebuilt/darwin-x86_64/bin/aarch64-linux-android21-clang \
           AR=aarch64-linux-android-ar \
           RANLIB=aarch64-linux-android-ranlib \
