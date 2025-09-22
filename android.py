@@ -223,7 +223,7 @@ def configure_host_python(context):
 
         # Android always uses a shared libpython.
         "--enable-shared",
-        "--with-pgo"
+        "--with-pgo",
         "--without-static-libpython",
 
         # PATCH: Add --enable-optimizations
