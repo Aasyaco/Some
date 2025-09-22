@@ -24,7 +24,12 @@ jobs:
       CXX: clang++
     steps:
       - name: Ensure Homebrew is in PATH
-        run: echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> $GITHUB_ENV
+        run: |
+          echo "HOMEBREW_PREFIX=/opt/homebrew" >> $GITHUB_ENV
+          echo "HOMEBREW_CELLAR=/opt/homebrew/Cellar" >> $GITHUB_ENV
+          echo "HOMEBREW_REPOSITORY=/opt/homebrew" >> $GITHUB_ENV
+          echo "/opt/homebrew/bin" >> $GITHUB_PATH
+          echo "/opt/homebrew/sbin" >> $GITHUB_PATH
 
       - name: Install dependencies & clone CPython
         run: |
@@ -111,7 +116,12 @@ jobs:
       CXX: clang++
     steps:
       - name: Ensure Homebrew is in PATH
-        run: echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> $GITHUB_ENV
+        run: |
+          echo "HOMEBREW_PREFIX=/opt/homebrew" >> $GITHUB_ENV
+          echo "HOMEBREW_CELLAR=/opt/homebrew/Cellar" >> $GITHUB_ENV
+          echo "HOMEBREW_REPOSITORY=/opt/homebrew" >> $GITHUB_ENV
+          echo "/opt/homebrew/bin" >> $GITHUB_PATH
+          echo "/opt/homebrew/sbin" >> $GITHUB_PATH
 
       - name: Install dependencies & clone CPython
         run: |
@@ -120,8 +130,6 @@ jobs:
           git clone --branch 3.14 --depth 1 https://github.com/python/cpython.git cpython-3.14
           ls cpython-3.14
           clang --version
-
-      # No patch step for 3.14
 
       - name: Build CPython for Android
         working-directory: ./cpython-3.14/Android
@@ -188,7 +196,12 @@ jobs:
       CXX: clang++
     steps:
       - name: Ensure Homebrew is in PATH
-        run: echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> $GITHUB_ENV
+        run: |
+          echo "HOMEBREW_PREFIX=/opt/homebrew" >> $GITHUB_ENV
+          echo "HOMEBREW_CELLAR=/opt/homebrew/Cellar" >> $GITHUB_ENV
+          echo "HOMEBREW_REPOSITORY=/opt/homebrew" >> $GITHUB_ENV
+          echo "/opt/homebrew/bin" >> $GITHUB_PATH
+          echo "/opt/homebrew/sbin" >> $GITHUB_PATH
 
       - name: Install dependencies & clone CPython
         run: |
@@ -197,8 +210,6 @@ jobs:
           git clone --branch main --depth 1 https://github.com/python/cpython.git cpython-3.15
           ls cpython-3.15
           clang --version
-
-      # No patch step for 3.15
 
       - name: Build CPython for Android
         working-directory: ./cpython-3.15/Android
