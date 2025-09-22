@@ -16,19 +16,21 @@ jobs:
     name: Android (aarch64) Python 3.13
     runs-on: macos-14
     timeout-minutes: 60
+    env:
+      PATH: /opt/homebrew/opt/llvm@21/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
+      LDFLAGS: -L/opt/homebrew/opt/llvm@21/lib
+      CPPFLAGS: -I/opt/homebrew/opt/llvm@21/include
+      CC: clang
+      CXX: clang++
     steps:
       - name: Install dependencies & clone CPython
         run: |
-          brew install readline llvm lld dpkg mpdecimal
+          brew install readline lld dpkg mpdecimal llvm@21
+          brew link llvm@21 --force
           git clone --branch 3.13 --depth 1 https://github.com/python/cpython.git cpython-3.13
-          export CC=clang
-          export CXX=clang++
           ls cpython-3.13
-      - name: Install clang 21.1.0 (bottle)
-        run: |
-          brew install llvm@21;brew link llvm@21 --force
           clang --version
-  
+
       - name: Apply patch from URL
         working-directory: ./cpython-3.13
         run: |
@@ -43,14 +45,14 @@ jobs:
         working-directory: ./cpython-3.13/Android
         run: |
           ./android.py clean
-          rm -rf cross-build/build/*.profclangr
+          find ../cross-build/build -name "*.profclangr" -delete
           ./android.py ci aarch64-linux-android
           python3.13 -c "print(__import__('sys').version)" || echo 'Python not found'
 
       - name: Package as .deb
         run: |
-          export CPPFLAGS="-I/opt/homebrew/opt/llvm/include"
-          export LDFLAGS="-L/opt/homebrew/opt/llvm/lib -L/opt/homebrew/opt/llvm/lib/unwind -L/opt/homebrew/opt/llvm/lib/c++ -lunwind"
+          export CPPFLAGS="-I/opt/homebrew/opt/llvm@21/include"
+          export LDFLAGS="-L/opt/homebrew/opt/llvm@21/lib -L/opt/homebrew/opt/llvm@21/lib/unwind -L/opt/homebrew/opt/llvm@21/lib/c++ -lunwind"
           PKG_NAME="pyv313"
           PKG_VERSION="3.13"
           ARCH="aarch64"
@@ -98,19 +100,20 @@ jobs:
     name: Android (aarch64) Python 3.14
     runs-on: macos-14
     timeout-minutes: 60
+    env:
+      PATH: /opt/homebrew/opt/llvm@21/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
+      LDFLAGS: -L/opt/homebrew/opt/llvm@21/lib
+      CPPFLAGS: -I/opt/homebrew/opt/llvm@21/include
+      CC: clang
+      CXX: clang++
     steps:
       - name: Install dependencies & clone CPython
         run: |
-          brew install readline llvm lld dpkg mpdecimal
+          brew install readline lld dpkg mpdecimal llvm@21
+          brew link llvm@21 --force
           git clone --branch 3.14 --depth 1 https://github.com/python/cpython.git cpython-3.14
-          export CC=clang
-          export CXX=clang++
           ls cpython-3.14
-      - name: Install clang 21.1.0 (bottle)
-        run: |
-          brew install llvm@21;brew link llvm@21 --force
           clang --version
-  
 
       # No patch step for 3.14
 
@@ -122,8 +125,8 @@ jobs:
 
       - name: Package as .deb
         run: |
-          export CPPFLAGS="-I/opt/homebrew/opt/llvm/include"
-          export LDFLAGS="-L/opt/homebrew/opt/llvm/lib -L/opt/homebrew/opt/llvm/lib/unwind -L/opt/homebrew/opt/llvm/lib/c++ -lunwind"
+          export CPPFLAGS="-I/opt/homebrew/opt/llvm@21/include"
+          export LDFLAGS="-L/opt/homebrew/opt/llvm@21/lib -L/opt/homebrew/opt/llvm@21/lib/unwind -L/opt/homebrew/opt/llvm@21/lib/c++ -lunwind"
           PKG_NAME="pyv314"
           PKG_VERSION="3.14"
           ARCH="aarch64"
@@ -171,19 +174,21 @@ jobs:
     name: Android (aarch64) Python 3.15
     runs-on: macos-14
     timeout-minutes: 60
+    env:
+      PATH: /opt/homebrew/opt/llvm@21/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
+      LDFLAGS: -L/opt/homebrew/opt/llvm@21/lib
+      CPPFLAGS: -I/opt/homebrew/opt/llvm@21/include
+      CC: clang
+      CXX: clang++
     steps:
       - name: Install dependencies & clone CPython
         run: |
-          brew install readline llvm lld dpkg mpdecimal
+          brew install readline lld dpkg mpdecimal llvm@21
+          brew link llvm@21 --force
           git clone --branch main --depth 1 https://github.com/python/cpython.git cpython-3.15
-          export CC=clang
-          export CXX=clang++
           ls cpython-3.15
-      - name: Install clang 21.1.0 (bottle)
-        run: |
-          brew install llvm@21;brew link llvm@21 --force
           clang --version
-  
+
       # No patch step for 3.15
 
       - name: Build CPython for Android
@@ -191,12 +196,11 @@ jobs:
         run: |
           ./android.py ci aarch64-linux-android
           python3.13 -c "print(__import__('sys').version)" || echo 'Python not found'
-          
-          
+
       - name: Package as .deb
         run: |
-          export CPPFLAGS="-I/opt/homebrew/opt/llvm/include"
-          export LDFLAGS="-L/opt/homebrew/opt/llvm/lib -L/opt/homebrew/opt/llvm/lib/unwind -L/opt/homebrew/opt/llvm/lib/c++ -lunwind"
+          export CPPFLAGS="-I/opt/homebrew/opt/llvm@21/include"
+          export LDFLAGS="-L/opt/homebrew/opt/llvm@21/lib -L/opt/homebrew/opt/llvm@21/lib/unwind -L/opt/homebrew/opt/llvm@21/lib/c++ -lunwind"
           PKG_NAME="pyv315"
           PKG_VERSION="3.15"
           ARCH="aarch64"
