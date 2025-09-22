@@ -48,17 +48,21 @@ jobs:
           mkdir -p Android
           cp android.py Android/
 
-      - name: Install bzip2/xz for cross compilation
+      - name: Install cross-compiled libraries
         working-directory: ./cpython-3.13
         run: |
           mkdir -p cross-build/aarch64-linux-android/prefix
           cd cross-build/aarch64-linux-android/prefix
           curl -LO https://github.com/beeware/cpython-android-source-deps/releases/download/bzip2-1.0.8-3/bzip2-1.0.8-3-aarch64-linux-android.tar.gz
-          curl -LO https://github.com/beeware/cpython-android-source-deps/releases/download/xz-5.4.6-1/xz-5.4.6-1-aarch64-linux-android.tar.gz
           tar -xzf bzip2-1.0.8-3-aarch64-linux-android.tar.gz
+          curl -LO https://github.com/beeware/cpython-android-source-deps/releases/download/xz-5.4.6-1/xz-5.4.6-1-aarch64-linux-android.tar.gz
           tar -xzf xz-5.4.6-1-aarch64-linux-android.tar.gz
-          export LDFLAGS="-L$PWD/lib"
-          export CPPFLAGS="-I$PWD/include"
+          curl -LO https://github.com/beeware/cpython-android-source-deps/releases/download/zlib-1.2.13-1/zlib-1.2.13-1-aarch64-linux-android.tar.gz
+          tar -xzf zlib-1.2.13-1-aarch64-linux-android.tar.gz
+          export LDFLAGS="-L$PWD/bzip2-1.0.8-3/lib -L$PWD/xz-5.4.6-1/lib -L$PWD/zlib-1.2.13-1/lib"
+          export CPPFLAGS="-I$PWD/bzip2-1.0.8-3/include -I$PWD/xz-5.4.6-1/include -I$PWD/zlib-1.2.13-1/include"
+          export PKG_CONFIG_PATH="$PWD/bzip2-1.0.8-3/lib/pkgconfig:$PWD/xz-5.4.6-1/lib/pkgconfig:$PWD/zlib-1.2.13-1/lib/pkgconfig"
+
 
       - name: Build CPython for Android
         working-directory: ./cpython-3.13/Android
