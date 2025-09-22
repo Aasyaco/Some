@@ -49,10 +49,10 @@ jobs:
           cp android.py Android/
 
       - name: Install bzip2/xz for cross compilation
-        working-directory: ./cpython-3.13/cross-build
+        working-directory: ./cpython-3.13
         run: |
-          mkdir -p aarch64-linux-android/prefix
-          cd aarch64-linux-android/prefix
+          mkdir -p cross-build/aarch64-linux-android/prefix
+          cd cross-build/aarch64-linux-android/prefix
           curl -LO https://github.com/beeware/cpython-android-source-deps/releases/download/bzip2-1.0.8-3/bzip2-1.0.8-3-aarch64-linux-android.tar.gz
           curl -LO https://github.com/beeware/cpython-android-source-deps/releases/download/xz-5.4.6-1/xz-5.4.6-1-aarch64-linux-android.tar.gz
           tar -xzf bzip2-1.0.8-3-aarch64-linux-android.tar.gz
@@ -65,7 +65,6 @@ jobs:
         run: |
           mkdir -p ../cross-build/build
           ./android.py clean || true
-          find ../cross-build/build -name "*.profclangr" -delete || true
           ./android.py ci aarch64-linux-android
           python3.13 -c "import sys; print(sys.version)" || echo 'Python not found'
           
