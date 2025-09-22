@@ -24,11 +24,12 @@ jobs:
       CXX: clang++
     steps:
       - name: Ensure Homebrew is in PATH
-        run: echo "HOMEBREW_PREFIX=/opt/homebrew" >> $GITHUB_ENV && \
-             echo "HOMEBREW_CELLAR=/opt/homebrew/Cellar" >> $GITHUB_ENV && \
-             echo "HOMEBREW_REPOSITORY=/opt/homebrew" >> $GITHUB_ENV && \
-             echo "/opt/homebrew/bin" >> $GITHUB_PATH && \
-             echo "/opt/homebrew/sbin" >> $GITHUB_PATH
+        run: |
+          echo "HOMEBREW_PREFIX=/opt/homebrew" >> $GITHUB_ENV
+          echo "HOMEBREW_CELLAR=/opt/homebrew/Cellar" >> $GITHUB_ENV
+          echo "HOMEBREW_REPOSITORY=/opt/homebrew" >> $GITHUB_ENV
+          echo "/opt/homebrew/bin" >> $GITHUB_PATH
+          echo "/opt/homebrew/sbin" >> $GITHUB_PATH
 
       - name: Install dependencies & clone CPython
         run: |
@@ -50,12 +51,11 @@ jobs:
       - name: Build CPython for Android
         working-directory: ./cpython-3.13/Android
         run: |
-          ls ../
-          #mkdir -p ../cross-build/build
-          #./android.py clean || true
-         # find ../cross-build/build -name "*.profclangr" -delete || true
-          #./android.py ci aarch64-linux-android
-         # python3.13 -c "import sys; print(sys.version)" || echo 'Python not found'
+          mkdir -p ../cross-build/build
+          ./android.py clean || true
+          find ../cross-build/build -name "*.profclangr" -delete || true
+          ./android.py ci aarch64-linux-android
+          python3.13 -c "import sys; print(sys.version)" || echo 'Python not found'
 
       - name: Package as .deb
         run: |
