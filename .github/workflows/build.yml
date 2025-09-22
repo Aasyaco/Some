@@ -47,15 +47,18 @@ jobs:
           git apply termux.patch
           cp ./android.py ./Android/android.py
           export PGEN_DISABLED=1
-      - name: Enable compression modules
-        working-directory: ./cpython-3.13/Modules
+      - name: Install bzip2/xz for cross compilation
         run: |
-          cat > Setup.local <<'EOF'
-          zlib zlibmodule.c -lz
-          _bz2 _bz2module.c -lbz2
-          _lzma _lzmamodule.c -llzma
-          EOF
-          echo "Created Setup.local to enable zlib, bz2, lzma"
+          mkdir -p ../cross-build/${{ matrix.arch }}-linux-android/prefix
+          cd ../cross-build/${{ matrix.arch }}-linux-android/prefix
+          curl -LO https://github.com/beeware/cpython-android-source-deps/releases/download/bzip2-1.0.8-3/bzip2-1.0.8-3-${{ matrix.arch }}-linux-android.tar.gz
+          curl -LO https://github.com/beeware/cpython-android-source-deps/releases/download/xz-5.4.6-1/xz-5.4.6-1-${{ matrix.arch }}-linux-android.tar.gz
+          tar -xzf bzip2-1.0.8-3-${{ matrix.arch }}-linux-android.tar.gz
+          tar -xzf xz-5.4.6-1-${{ matrix.arch }}-linux-android.tar.gz
+          ls -l lib
+          export LDFLAGS="-L$PWD/lib"
+          export CPPFLAGS="-I$PWD/include"
+          cd ../../..
       - name: Build CPython for Android
         working-directory: ./cpython-3.13/Android
         run: |
