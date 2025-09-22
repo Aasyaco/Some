@@ -47,14 +47,21 @@ jobs:
           git apply termux.patch
           cp ./android.py ./Android/android.py
           export PGEN_DISABLED=1
-
+      - name: Enable compression modules
+        working-directory: ./cpython-3.13/Modules
+        run: |
+          cat > Setup.local <<'EOF'
+          zlib zlibmodule.c -lz
+          _bz2 _bz2module.c -lbz2
+          _lzma _lzmamodule.c -llzma
+          EOF
+          echo "Created Setup.local to enable zlib, bz2, lzma"
       - name: Build CPython for Android
         working-directory: ./cpython-3.13/Android
         run: |
           mkdir -p ../cross-build/build
           ./android.py clean || true
           find ../cross-build/build -name "*.profclangr" -delete || true
-          ./android.py configure-build --without-bz2 --without-lzma --without-ensurepip;./android.py make-build
           ./android.py ci aarch64-linux-android
           python3.13 -c "import sys; print(sys.version)" || echo 'Python not found'
 
