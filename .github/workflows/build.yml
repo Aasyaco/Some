@@ -64,7 +64,7 @@ jobs:
           CC=/Users/runner/Library/Android/sdk/ndk/27.3.13750724/toolchains/llvm/prebuilt/darwin-x86_64/bin/aarch64-linux-android21-clang \
           AR=aarch64-linux-android-ar \
           RANLIB=aarch64-linux-android-ranlib \
-          ./configure --prefix=$PREFIX
+          ./configure --prefix=$PREFIX --static
           make -j$(nproc)
           make install
           cd $PREFIX
