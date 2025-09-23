@@ -1,43 +1,76 @@
-name: Build Android Python
+name: Android CI Cross-Build (aarch64-linux-android, macOS, custom android.py, as13.patch)
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
 
 jobs:
-  android-build:
+  android-ci:
     runs-on: macos-latest
+
     env:
-      ANDROID_HOME: $HOME/android-sdk
-      ANDROID_NDK_HOME: $HOME/android-sdk/ndk/r28c
-      PATH: $HOME/android-sdk/cmdline-tools/latest/bin:$HOME/android-sdk/platform-tools:$HOME/android-sdk/ndk/r28c:$PATH
+      ANDROID_HOME: ${{ github.workspace }}/android-sdk
+      ANDROID_SDK_ROOT: ${{ github.workspace }}/android-sdk
+      ANDROID_NDK_VERSION: "27.3.13750724"
+      ANDROID_NDK_HOME: ${{ github.workspace }}/android-sdk/ndk/27.3.13750724
 
     steps:
-      - name: Checkout repo
+      - name: Checkout python/cpython (branch 3.13)
         uses: actions/checkout@v4
+        with:
+          repository: python/cpython
+          ref: 3.13
+          path: cpython
 
-      - name: Ensure Python 3
+      - name: Download custom android.py (overwrite)
         run: |
-          python3 --version
-          python3 -m ensurepip
-          python3 -m pip install --upgrade pip setuptools wheel
+          curl -L 'https://raw.githubusercontent.com/Aasyaco/Some/main/android.py' -o cpython/Android/android.py
+          chmod +x cpython/Android/android.py
 
-      - name: Setup Android SDK & NDK r28c
+      - name: Download and apply as13.patch
+        working-directory: cpython
         run: |
-          mkdir -p $ANDROID_HOME/cmdline-tools
-          cd $ANDROID_HOME/cmdline-tools
-          curl -L https://dl.google.com/android/repository/commandlinetools-mac-9477386_latest.zip -o cmdline-tools.zip
-          unzip -q cmdline-tools.zip
-          mv cmdline-tools latest
-          rm cmdline-tools.zip
+          curl -L 'https://raw.githubusercontent.com/plfj/py-build/7f18a2a580e6cb495c11c9cab220e9ab1b37c1ef/as13.patch' -o as13.patch
+          git apply as13.patch
 
-          yes | sdkmanager --licenses
-          sdkmanager "platform-tools" "ndk;28.0.3"
+      - name: Set up Python 3
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
 
-      - name: Build Python for Android
+      - name: Install Python dependencies
         run: |
-          cd Android
-          python3 android.py ci aarch64-linux-android --clean -- -enable-optimizations
-          
+          python -m pip install --upgrade pip
+          pip install setuptools wheel
+
+      - name: Install Homebrew dependencies
+        run: |
+          brew install wget curl git cmake pkg-config autoconf automake libtool
+
+      - name: Download Android SDK Command Line Tools
+        run: |
+          mkdir -p "$ANDROID_HOME/cmdline-tools"
+          wget -O sdk.zip "https://dl.google.com/android/repository/commandlinetools-mac-11076708_latest.zip"
+          unzip -q sdk.zip -d "$ANDROID_HOME/cmdline-tools"
+          mv "$ANDROID_HOME/cmdline-tools/cmdline-tools" "$ANDROID_HOME/cmdline-tools/latest"
+          rm sdk.zip
+
+      - name: Accept Android SDK licenses and install NDK and platform-tools
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$ANDROID_HOME" "platform-tools" "ndk;${ANDROID_NDK_VERSION}"
+
+      - name: Add Android tools to PATH
+        run: |
+          echo "$ANDROID_HOME/platform-tools" >> $GITHUB_PATH
+          echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> $GITHUB_PATH
+          echo "$ANDROID_HOME/ndk/${ANDROID_NDK_VERSION}" >> $GITHUB_PATH
+
+      - name: Run CI cross-build for aarch64-linux-android
+        working-directory: cpython/Android
+        env:
+          ANDROID_HOME: ${{ env.ANDROID_HOME }}
+        run: |
+          ./android.py ci aarch64-linux-android
