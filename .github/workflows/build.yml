@@ -57,13 +57,13 @@ jobs:
 
       - name: Install bzip2
         run: |
-          curl -L -o bzip2-1.0.8-3.tar.xz https://github.com/beeware/cpython-android-source-deps/releases/download/20241113/bzip2-1.0.8-3-aarch64-linux-android.tar.xz
-          tar -xf bzip2-1.0.8-3.tar.xz -C $PREFIX
+          curl -L -o bzip2-1.0.8-3.tar.gz https://github.com/beeware/cpython-android-source-deps/releases/download/bzip2-1.0.8-3/bzip2-1.0.8-3-aarch64-linux-android.tar.gz
+          tar -xzf bzip2-1.0.8-3.tar.gz -C $PREFIX
 
       - name: Install xz
         run: |
-          curl -L -o xz-5.4.6-1.tar.xz https://github.com/beeware/cpython-android-source-deps/releases/download/20241113/xz-5.4.6-1-aarch64-linux-android.tar.xz
-          tar -xf xz-5.4.6-1.tar.xz -C $PREFIX
+          curl -L -o xz-5.4.6-1.tar.gz https://github.com/beeware/cpython-android-source-deps/releases/download/xz-5.4.6-1/xz-5.4.6-1-aarch64-linux-android.tar.gz
+          tar -xzf xz-5.4.6-1.tar.gz -C $PREFIX
 
       - name: Install prebuilt zlib
         run: |
