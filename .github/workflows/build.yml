@@ -16,40 +16,38 @@ jobs:
       CC: clang
       CXX: clang++
       LD: clang
-      AR: llvm-ar
-      AS: llvm-as
-      RANLIB: llvm-ranlib
-      STRIP: llvm-strip
-      PATH: /opt/homebrew/opt/llvm@21/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
+      AR: ar
+      AS: as
+      RANLIB: ranlib
+      STRIP: strip
+      PATH: /usr/bin:/bin:/usr/sbin:/sbin
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Python 3.12
+      - name: Setup Python 3.11
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
-      - name: Install Homebrew
+          python-version: "3.11"
+
+      - name: Install dependencies
         run: |
-         /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-         echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> $GITHUB_ENV
-         eval "$(/opt/homebrew/bin/brew shellenv)"
-    
-      - name: Install Homebrew dependencies
-        run: |
-          brew install llvm@21 lld cmake ninja unzip curl xz pkg-config
+          sudo xcode-select --install || true
+          sudo pkgutil --forget com.apple.pkg.CLTools_Executables || true
+          sudo softwareupdate -i -a || true
+          sudo xcode-select --reset
 
       - name: Prepare directories
         run: |
           mkdir -p $PREFIX
 
-      - name: Install bzip2
+      - name: Install bzip2 prebuilt
         run: |
           curl -L -o bzip2-1.0.8-3.tar.gz https://github.com/beeware/cpython-android-source-deps/releases/download/bzip2-1.0.8-3/bzip2-1.0.8-3-aarch64-linux-android.tar.gz
           tar -xzf bzip2-1.0.8-3.tar.gz -C $PREFIX
 
-      - name: Install xz
+      - name: Install xz prebuilt
         run: |
           curl -L -o xz-5.4.6-1.tar.gz https://github.com/beeware/cpython-android-source-deps/releases/download/xz-5.4.6-1/xz-5.4.6-1-aarch64-linux-android.tar.gz
           tar -xzf xz-5.4.6-1.tar.gz -C $PREFIX
@@ -74,12 +72,12 @@ jobs:
       - name: Clean previous build
         working-directory: ./cpython-3.13/Android
         run: |
-          python3.12 ./android.py clean $ANDROID_ARCH-linux-android || true
+          python3.11 ./android.py clean $ANDROID_ARCH-linux-android || true
 
       - name: Build CPython
         working-directory: ./cpython-3.13/Android
         run: |
-          python3.12 ./android.py ci $ANDROID_ARCH-linux-android
+          python3.11 ./android.py ci $ANDROID_ARCH-linux-android
 
       - name: Package as .deb
         run: |
