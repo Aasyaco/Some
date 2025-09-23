@@ -20,7 +20,6 @@ jobs:
       AS: as
       RANLIB: ranlib
       STRIP: strip
-      PATH: /usr/bin:/bin:/usr/sbin:/sbin
 
     steps:
       - name: Checkout
@@ -31,10 +30,17 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install LLVM tools (for PGO/LTO)
+      - name: Setup Android NDK (r28c)
+        uses: android-actions/setup-ndk@v2
+        with:
+          ndk-version: "r28c"
+
+      - name: Configure NDK LLVM environment
         run: |
-          brew install llvm
-          echo "$(brew --prefix llvm)/bin" >> $GITHUB_PATH
+          export ANDROID_NDK_ROOT=$NDK_HOME
+          export PATH=$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/darwin-x86_64/bin:$PATH
+          clang --version
+          llvm-profdata --version
 
       - name: Prepare directories
         run: mkdir -p $PREFIX
@@ -68,12 +74,7 @@ jobs:
       - name: Clean previous build
         working-directory: ./cpython-3.13/Android
         run: |
-          echo "Cleaning previous build..."
           python3.11 ./android.py clean $ANDROID_ARCH-linux-android || true
-
-      - name: Verify llvm-profdata
-        run: llvm-profdata --version
-
       - name: Build CPython with optimizations
         working-directory: ./cpython-3.13/Android
         run: python3.11 ./android.py ci $ANDROID_ARCH-linux-android --enable-optimizations
