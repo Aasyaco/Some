@@ -19,10 +19,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Python 3.11
+      - name: Setup Python 3.12
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.12"
 
       - name: Install Xcode CLI Tools
         run: |
@@ -80,15 +80,10 @@ jobs:
       - name: Clean previous build
         working-directory: ./cpython-3.13/Android
         run: |
-          python3.11 ./android.py clean $ANDROID_ARCH-linux-android || true
-          find ../.. -name '*.py[co]' -exec rm -f {} ';' || true
-          find . -name '*.[oa]' -exec rm -f {} ';' || true
-          find . -name '*.so.[0-9]*.[0-9]*' -exec rm -f {} ';' || true
-          [ -d build ] && find build -name '*.py*' -exec rm -f {} ';'
-
+          python3.12 ./android.py clean $ANDROID_ARCH-linux-android || true
       - name: Build CPython with PGO optimizations
         working-directory: ./cpython-3.13/Android
-        run: python3.11 ./android.py ci $ANDROID_ARCH-linux-android --enable-optimizations
+        run: python3.12 ./android.py ci $ANDROID_ARCH-linux-android --enable-optimizations
 
       - name: Package as .deb
         run: |
