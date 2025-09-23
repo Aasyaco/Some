@@ -52,7 +52,7 @@ jobs:
 
       - name: Verify unpacked files
         run: |
-          tree $GITHUB_WORKSPACE/android-libs/aarch64-linux-android
+          find $GITHUB_WORKSPACE/android-libs/aarch64-linux-android
 
       - name: Checkout python/cpython (branch 3.13)
         uses: actions/checkout@v4
