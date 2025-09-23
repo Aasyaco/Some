@@ -26,11 +26,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Python 3.11
+      - name: Setup Python 3.12
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
-
+          python-version: "3.12"
+      - name: Install Homebrew
+        run: |
+         /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+         echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> $GITHUB_ENV
+         eval "$(/opt/homebrew/bin/brew shellenv)"
+    
       - name: Install Homebrew dependencies
         run: |
           brew install llvm@21 lld cmake ninja unzip curl xz pkg-config
@@ -69,12 +74,12 @@ jobs:
       - name: Clean previous build
         working-directory: ./cpython-3.13/Android
         run: |
-          python3.11 ./android.py clean $ANDROID_ARCH-linux-android || true
+          python3.12 ./android.py clean $ANDROID_ARCH-linux-android || true
 
       - name: Build CPython
         working-directory: ./cpython-3.13/Android
         run: |
-          python3.11 ./android.py ci $ANDROID_ARCH-linux-android
+          python3.12 ./android.py ci $ANDROID_ARCH-linux-android
 
       - name: Package as .deb
         run: |
