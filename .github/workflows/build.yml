@@ -1,3 +1,4 @@
+
 name: Build Android
 
 on:
@@ -31,16 +32,8 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install dependencies
-        run: |
-          sudo xcode-select --install || true
-          sudo pkgutil --forget com.apple.pkg.CLTools_Executables || true
-          sudo softwareupdate -i -a || true
-          sudo xcode-select --reset
-
       - name: Prepare directories
-        run: |
-          mkdir -p $PREFIX
+        run: mkdir -p $PREFIX
 
       - name: Install bzip2 prebuilt
         run: |
@@ -54,15 +47,14 @@ jobs:
 
       - name: Install prebuilt zlib
         run: |
-          curl -L -o zlib-prebuilt.zip https://github.com/Aasyaco/Some-help/actions/runs/17937181821/artifacts/4079476254
-          unzip zlib-prebuilt.zip
-          tar -xzf zlib-aarch64-android.tar.gz -C $PREFIX
+          curl -L -o zlib-1.3.1.tar.gz https://github.com/Aasyaco/Some-help/releases/download/zlib_1_3_1/zlib-aarch64-android-1.3.1.tar.gz
+          tar -xzf zlib-1.3.1.tar.gz -C $PREFIX
 
       - name: Configure environment
         run: |
-          echo "LDFLAGS=-L$PREFIX/bzip2-1.0.8-3/lib -L$PREFIX/xz-5.4.6-1/lib -L$PREFIX/zlib-aarch64-android/lib -L$PREFIX/lib" >> $GITHUB_ENV
-          echo "CPPFLAGS=-I$PREFIX/bzip2-1.0.8-3/include -I$PREFIX/xz-5.4.6-1/include -I$PREFIX/zlib-aarch64-android/include -I$PREFIX/include" >> $GITHUB_ENV
-          echo "PKG_CONFIG_PATH=$PREFIX/bzip2-1.0.8-3/lib/pkgconfig:$PREFIX/xz-5.4.6-1/lib/pkgconfig:$PREFIX/zlib-aarch64-android/lib/pkgconfig:$PREFIX/lib/pkgconfig" >> $GITHUB_ENV
+          echo "LDFLAGS=-L$PREFIX/bzip2-1.0.8-3/lib -L$PREFIX/xz-5.4.6-1/lib -L$PREFIX/zlib-aarch64/lib -L$PREFIX/lib" >> $GITHUB_ENV
+          echo "CPPFLAGS=-I$PREFIX/bzip2-1.0.8-3/include -I$PREFIX/xz-5.4.6-1/include -I$PREFIX/zlib-aarch64/include -I$PREFIX/include" >> $GITHUB_ENV
+          echo "PKG_CONFIG_PATH=$PREFIX/bzip2-1.0.8-3/lib/pkgconfig:$PREFIX/xz-5.4.6-1/lib/pkgconfig:$PREFIX/zlib-aarch64/lib/pkgconfig:$PREFIX/lib/pkgconfig" >> $GITHUB_ENV
 
       - name: Clone CPython
         run: |
@@ -71,14 +63,11 @@ jobs:
 
       - name: Clean previous build
         working-directory: ./cpython-3.13/Android
-        run: |
-          python3.11 ./android.py clean $ANDROID_ARCH-linux-android || true
+        run: python3.11 ./android.py clean $ANDROID_ARCH-linux-android || true
 
       - name: Build CPython
         working-directory: ./cpython-3.13/Android
-        run: |
-          python3.11 ./android.py ci $ANDROID_ARCH-linux-android
-
+        run: python3.11 ./android.py ci $ANDROID_ARCH-linux-android
       - name: Package as .deb
         run: |
           PKG_NAME="pyv313"
