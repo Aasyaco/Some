@@ -9,8 +9,7 @@ on:
 
 jobs:
   build-android:
-    runs-on: ubuntu-latest
-
+    runs-on: macos-14
     env:
       ANDROID_ARCH: aarch64
       PREFIX: ${{ github.workspace }}/prefix
@@ -21,6 +20,7 @@ jobs:
       AS: llvm-as
       RANLIB: llvm-ranlib
       STRIP: llvm-strip
+      PATH: /opt/homebrew/opt/llvm@21/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
 
     steps:
       - name: Checkout
@@ -31,25 +31,9 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install dependencies
+      - name: Install Homebrew dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            build-essential \
-            clang \
-            lld \
-            llvm \
-            cmake \
-            ninja-build \
-            unzip \
-            curl \
-            xz-utils \
-            pkg-config \
-            autoconf \
-            automake \
-            libtool \
-            m4 \
-            dpkg
+          brew install llvm@21 lld cmake ninja unzip curl xz pkg-config
 
       - name: Prepare directories
         run: |
@@ -71,18 +55,11 @@ jobs:
           unzip zlib-prebuilt.zip
           tar -xzf zlib-aarch64-android.tar.gz -C $PREFIX
 
-      - name: Configure env
+      - name: Configure environment
         run: |
           echo "LDFLAGS=-L$PREFIX/bzip2-1.0.8-3/lib -L$PREFIX/xz-5.4.6-1/lib -L$PREFIX/zlib-aarch64-android/lib -L$PREFIX/lib" >> $GITHUB_ENV
           echo "CPPFLAGS=-I$PREFIX/bzip2-1.0.8-3/include -I$PREFIX/xz-5.4.6-1/include -I$PREFIX/zlib-aarch64-android/include -I$PREFIX/include" >> $GITHUB_ENV
           echo "PKG_CONFIG_PATH=$PREFIX/bzip2-1.0.8-3/lib/pkgconfig:$PREFIX/xz-5.4.6-1/lib/pkgconfig:$PREFIX/zlib-aarch64-android/lib/pkgconfig:$PREFIX/lib/pkgconfig" >> $GITHUB_ENV
-          echo "CC=clang" >> $GITHUB_ENV
-          echo "CXX=clang++" >> $GITHUB_ENV
-          echo "LD=clang" >> $GITHUB_ENV
-          echo "AR=llvm-ar" >> $GITHUB_ENV
-          echo "AS=llvm-as" >> $GITHUB_ENV
-          echo "RANLIB=llvm-ranlib" >> $GITHUB_ENV
-          echo "STRIP=llvm-strip" >> $GITHUB_ENV
 
       - name: Clone CPython
         run: |
