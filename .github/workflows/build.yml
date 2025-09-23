@@ -1,132 +1,43 @@
-name: Build Android Python 3.13 (aarch64)
+name: Build Android Python
 
 on:
-  workflow_dispatch:
   push:
     branches:
       - main
-      - "3.*"
+  workflow_dispatch:
 
 jobs:
-  build-android:
-    runs-on: macos-14
+  android-build:
+    runs-on: macos-latest
     env:
-      ANDROID_ARCH: aarch64
-      ANDROID_API: 21
-      PREFIX: ${{ github.workspace }}/prefix
+      ANDROID_HOME: ${{ runner.temp }}/android-sdk
+      ANDROID_NDK_HOME: ${{ runner.temp }}/android-sdk/ndk/r28c
+      PATH: ${{ runner.temp }}/android-sdk/cmdline-tools/latest/bin:${{ runner.temp }}/android-sdk/platform-tools:${{ runner.temp }}/android-sdk/ndk/r28c:$PATH
 
     steps:
-      - name: Checkout
+      - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Setup Python 3.12
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Install Xcode CLI Tools
+      - name: Ensure Python 3
         run: |
-          sudo xcode-select --install || true
-          sudo xcode-select --reset
-          sudo xcodebuild -license accept
+          python3 --version
+          python3 -m ensurepip
+          python3 -m pip install --upgrade pip setuptools wheel
 
-      - name: Download and extract Android NDK r28c
+      - name: Setup Android SDK & NDK r28c
         run: |
-          NDK_URL="https://dl.google.com/android/repository/android-ndk-r28c-darwin.zip"
-          curl -L -o android-ndk-r28c.zip $NDK_URL
-          unzip -q android-ndk-r28c.zip -d $HOME
-          echo "ANDROID_NDK_ROOT=$HOME/android-ndk-r28c" >> $GITHUB_ENV
-          echo "$HOME/android-ndk-r28c/toolchains/llvm/prebuilt/darwin-x86_64/bin" >> $GITHUB_PATH
+          mkdir -p $ANDROID_HOME/cmdline-tools
+          cd $ANDROID_HOME/cmdline-tools
+          curl -L https://dl.google.com/android/repository/commandlinetools-mac-9477386_latest.zip -o cmdline-tools.zip
+          unzip -q cmdline-tools.zip
+          mv cmdline-tools latest
+          rm cmdline-tools.zip
 
-      - name: Configure NDK Compiler
+          yes | sdkmanager --licenses
+          sdkmanager "platform-tools" "ndk;28.0.3"
+
+      - name: Build Python for Android
         run: |
-          export CC=$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/darwin-x86_64/bin/aarch64-linux-android${ANDROID_API}-clang
-          export CXX=$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/darwin-x86_64/bin/aarch64-linux-android${ANDROID_API}-clang++
-          export PATH=$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/darwin-x86_64/bin:$PATH
-          clang --version
-          llvm-profdata --version
-          echo "CC=$CC" >> $GITHUB_ENV
-          echo "CXX=$CXX" >> $GITHUB_ENV
-
-      - name: Prepare directories
-        run: mkdir -p $PREFIX
-
-      - name: Install prebuilt bzip2
-        run: |
-          curl -L -o bzip2-1.0.8-3.tar.gz https://github.com/beeware/cpython-android-source-deps/releases/download/bzip2-1.0.8-3/bzip2-1.0.8-3-aarch64-linux-android.tar.gz
-          tar -xzf bzip2-1.0.8-3.tar.gz -C $PREFIX
-
-      - name: Install prebuilt xz
-        run: |
-          curl -L -o xz-5.4.6-1.tar.gz https://github.com/beeware/cpython-android-source-deps/releases/download/xz-5.4.6-1/xz-5.4.6-1-aarch64-linux-android.tar.gz
-          tar -xzf xz-5.4.6-1.tar.gz -C $PREFIX
-
-      - name: Install prebuilt zlib
-        run: |
-          curl -L -o zlib-1.3.1.tar.gz https://github.com/Aasyaco/Some-help/releases/download/zlib_1_3_1/zlib-aarch64-android-1.3.1.tar.gz
-          tar -xzf zlib-1.3.1.tar.gz -C $PREFIX
-
-      - name: Configure environment variables
-        run: |
-          echo "LDFLAGS=-L$PREFIX/bzip2-1.0.8-3/lib -L$PREFIX/xz-5.4.6-1/lib -L$PREFIX/zlib-aarch64/lib -L$PREFIX/lib" >> $GITHUB_ENV
-          echo "CPPFLAGS=-I$PREFIX/bzip2-1.0.8-3/include -I$PREFIX/xz-5.4.6-1/include -I$PREFIX/zlib-aarch64/include -I$PREFIX/include" >> $GITHUB_ENV
-          echo "PKG_CONFIG_PATH=$PREFIX/bzip2-1.0.8-3/lib/pkgconfig:$PREFIX/xz-5.4.6-1/lib/pkgconfig:$PREFIX/zlib-aarch64/lib/pkgconfig:$PREFIX/lib/pkgconfig" >> $GITHUB_ENV
-
-      - name: Clone CPython 3.13
-        run: |
-          git clone --branch 3.13 --depth 1 https://github.com/python/cpython.git cpython-3.13
-          cp android.py cpython-3.13/Android/android.py
-
-      - name: Clean previous build
-        working-directory: ./cpython-3.13/Android
-        run: |
-          python3.12 ./android.py clean $ANDROID_ARCH-linux-android || true
-      - name: Build CPython with PGO optimizations
-        working-directory: ./cpython-3.13/Android
-        run: python3.12 ./android.py ci aarch64-linux-android
-
-      - name: Package as .deb
-        run: |
-          PKG_NAME="pyv313"
-          PKG_VERSION="3.13"
-          ARCH="aarch64"
-          DEB_DIR="$PKG_NAME"
-          BUILD_DIR="./cpython-3.13/cross-build/$ARCH-linux-android"
-
-          mkdir -p $DEB_DIR/DEBIAN
-          mkdir -p $DEB_DIR/usr
-
-          cat > $DEB_DIR/DEBIAN/control <<EOF
-          Package: $PKG_NAME
-          Version: $PKG_VERSION
-          Architecture: $ARCH
-          Maintainer: Cross-compiled by GitHub Actions
-          Description: Python 3.13 cross-compiled for Termux aarch64
-          EOF
-
-          cat > $DEB_DIR/DEBIAN/postinst <<'EOF'
-          #!/bin/sh
-          set -e
-          echo "pyv313 installed successfully!"
-          exit 0
-          EOF
-          chmod 755 $DEB_DIR/DEBIAN/postinst
-
-          if [ -d "$BUILD_DIR/prefix" ]; then
-            cp -r $BUILD_DIR/prefix/* $DEB_DIR/usr/
-          elif [ -d "$BUILD_DIR/install" ]; then
-            cp -r $BUILD_DIR/install/* $DEB_DIR/usr/
-          else
-            ls $BUILD_DIR
-            echo "No prefix/ or install/ directory found in $BUILD_DIR"
-            exit 1
-          fi
-
-          dpkg-deb --build $DEB_DIR ${PKG_NAME}_${PKG_VERSION}_${ARCH}.deb
-
-      - name: Upload Debian package
-        uses: actions/upload-artifact@v4
-        with:
-          name: pyv313
-          path: pyv313_3.13_aarch64.deb
-          if-no-files-found: error
+          cd Android
+          python3 android.py ci aarch64-linux-android --clean -- -enable-optimizations
+          
