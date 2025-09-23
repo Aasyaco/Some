@@ -12,14 +12,8 @@ jobs:
     runs-on: macos-14
     env:
       ANDROID_ARCH: aarch64
+      ANDROID_API: 21
       PREFIX: ${{ github.workspace }}/prefix
-      CC: clang
-      CXX: clang++
-      LD: clang
-      AR: ar
-      AS: as
-      RANLIB: ranlib
-      STRIP: strip
 
     steps:
       - name: Checkout
@@ -30,19 +24,29 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Install Xcode CLI Tools
+        run: |
+          sudo xcode-select --install || true
+          sudo xcode-select --reset
+          sudo xcodebuild -license accept
+
       - name: Download and extract Android NDK r28c
         run: |
           NDK_URL="https://dl.google.com/android/repository/android-ndk-r28c-darwin.zip"
           curl -L -o android-ndk-r28c.zip $NDK_URL
           unzip -q android-ndk-r28c.zip -d $HOME
-          export ANDROID_NDK_ROOT=$HOME/android-ndk-r28c
-          echo "ANDROID_NDK_ROOT=$ANDROID_NDK_ROOT" >> $GITHUB_ENV
-          echo "$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/darwin-x86_64/bin" >> $GITHUB_PATH
+          echo "ANDROID_NDK_ROOT=$HOME/android-ndk-r28c" >> $GITHUB_ENV
+          echo "$HOME/android-ndk-r28c/toolchains/llvm/prebuilt/darwin-x86_64/bin" >> $GITHUB_PATH
 
-      - name: Verify NDK Clang
+      - name: Configure NDK Compiler
         run: |
+          export CC=$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/darwin-x86_64/bin/aarch64-linux-android${ANDROID_API}-clang
+          export CXX=$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/darwin-x86_64/bin/aarch64-linux-android${ANDROID_API}-clang++
+          export PATH=$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/darwin-x86_64/bin:$PATH
           clang --version
           llvm-profdata --version
+          echo "CC=$CC" >> $GITHUB_ENV
+          echo "CXX=$CXX" >> $GITHUB_ENV
 
       - name: Prepare directories
         run: mkdir -p $PREFIX
@@ -77,10 +81,14 @@ jobs:
         working-directory: ./cpython-3.13/Android
         run: |
           python3.11 ./android.py clean $ANDROID_ARCH-linux-android || true
+          find ../.. -name '*.py[co]' -exec rm -f {} ';' || true
+          find . -name '*.[oa]' -exec rm -f {} ';' || true
+          find . -name '*.so.[0-9]*.[0-9]*' -exec rm -f {} ';' || true
+          [ -d build ] && find build -name '*.py*' -exec rm -f {} ';'
 
-      - name: Build CPython with optimizations
+      - name: Build CPython with PGO optimizations
         working-directory: ./cpython-3.13/Android
-        run: python3.11 ./android.py ci $ANDROID_ARCH-linux-android
+        run: python3.11 ./android.py ci $ANDROID_ARCH-linux-android --enable-optimizations
 
       - name: Package as .deb
         run: |
