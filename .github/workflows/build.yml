@@ -41,62 +41,18 @@ jobs:
           brew install llvm
           echo "/opt/homebrew/opt/llvm/bin" >> $GITHUB_PATH
           /opt/homebrew/opt/llvm/bin/llvm-profdata --version || true
-      - name: Cross-compile bzip2 for Android
-        run: |
-          cd $HOME
-          wget https://sourceware.org/pub/bzip2/bzip2-1.0.8.tar.gz
-          tar xf bzip2-1.0.8.tar.gz
-          cd bzip2-1.0.8
-          export PATH="${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH"
-          export CC="aarch64-linux-android21-clang"
-          make CC="$CC" AR="aarch64-linux-android-ar" RANLIB="aarch64-linux-android-ranlib" CFLAGS="-fPIC"
-          mkdir -p $GITHUB_WORKSPACE/android-libs/aarch64-linux-android/{include,lib}
-          cp libbz2.a $GITHUB_WORKSPACE/android-libs/aarch64-linux-android/lib/
-          cp bzlib.h $GITHUB_WORKSPACE/android-libs/aarch64-linux-android/include/
 
-      - name: Cross-compile xz for Android (for lzma)
-        run: |
-          cd $HOME
-          wget https://tukaani.org/xz/xz-5.2.10.tar.gz
-          tar xf xz-5.2.10.tar.gz
-          cd xz-5.2.10
-          export PATH="${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH"
-          export CC="aarch64-linux-android21-clang"
-          ./configure \
-            --host=aarch64-linux-android \
-            --prefix=$GITHUB_WORKSPACE/android-libs/aarch64-linux-android \
-            --disable-shared --enable-static --with-pic
-          make
-          make install
 
-      - name: Cross-compile zlib for Android
+      - name: Download and unpack prebuilt compression libs
         run: |
-          cd $HOME
-          wget https://zlib.net/zlib-1.3.1.tar.gz
-          tar xf zlib-1.3.1.tar.gz
-          cd zlib-1.3.1
-          export PATH="${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH"
-          export CC="aarch64-linux-android21-clang"
-          ./configure --static --prefix=$GITHUB_WORKSPACE/android-libs/aarch64-linux-android
-          make CFLAGS="-fPIC"
-          make install
+          mkdir -p $GITHUB_WORKSPACE/android-libs/aarch64-linux-android
+          wget -O compression-libs-aarch64-android.tar.gz \
+          "https://github.com/Aasyaco/Some-help/releases/download/compression_libs/compression-libs-aarch64-android.tar.gz"
+          tar -xzf compression-libs-aarch64-android.tar.gz -C $GITHUB_WORKSPACE/android-libs/aarch64-linux-android --strip-components=1
 
-      - name: Cross-compile gzip for Android
+      - name: Verify unpacked files
         run: |
-          cd $HOME
-          wget https://ftp.gnu.org/gnu/gzip/gzip-1.13.tar.gz
-          tar xf gzip-1.13.tar.gz
-          cd gzip-1.13
-          export PATH="${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH"
-          export CC="aarch64-linux-android21-clang"
-          ./configure \
-            --host=aarch64-linux-android \
-            --prefix=$GITHUB_WORKSPACE/android-libs/aarch64-linux-android \
-            CPPFLAGS="-I$GITHUB_WORKSPACE/android-libs/aarch64-linux-android/include" \
-            LDFLAGS="-L$GITHUB_WORKSPACE/android-libs/aarch64-linux-android/lib"
-          make
-          make install
-
+          tree $GITHUB_WORKSPACE/android-libs/aarch64-linux-android
 
       - name: Checkout python/cpython (branch 3.13)
         uses: actions/checkout@v4
