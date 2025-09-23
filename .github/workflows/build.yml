@@ -22,23 +22,25 @@ jobs:
           if ! command -v brew &>/dev/null; then
             echo "Homebrew not found. Installing..."
             NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-            echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> $HOME/.zprofile
-            eval "$(/opt/homebrew/bin/brew shellenv)"
+            eval "$(/opt/homebrew/bin/brew shellenv)" || eval "$(/usr/local/bin/brew shellenv)"
           else
             echo "Homebrew is already installed."
           fi
           brew --version
 
+      - name: Ensure tar is available
+        run: |
+          if ! command -v tar &>/dev/null; then
+            echo "tar not found, installing..."
+            brew install tar
+          fi
+          tar --version
+
       - name: Install llvm (for llvm-profdata and clang)
         run: |
           brew install llvm
-          echo "$(brew --prefix llvm)/bin" >> $GITHUB_PATH
-          llvm-profdata --version
-
-      - name: Ensure tar is available
-        run: |
-          which tar || (echo "tar not found, installing..." && brew install tar)
-          tar --version
+          echo "/opt/homebrew/opt/llvm/bin" >> $GITHUB_PATH
+          /opt/homebrew/opt/llvm/bin/llvm-profdata --version || true
 
       - name: Checkout python/cpython (branch 3.13)
         uses: actions/checkout@v4
