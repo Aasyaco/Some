@@ -77,7 +77,7 @@ jobs:
           python3.11 ./android.py clean $ANDROID_ARCH-linux-android || true
       - name: Build CPython with optimizations
         working-directory: ./cpython-3.13/Android
-        run: python3.11 ./android.py ci $ANDROID_ARCH-linux-android --enable-optimizations
+        run: python3.11 ./android.py ci $ANDROID_ARCH-linux-android
 
       - name: Package as .deb
         run: |
