@@ -5,89 +5,99 @@ on:
   push:
     branches:
       - main
-      - '3.*'
-  pull_request:
-    branches:
-      - main
-      - '3.*'
+      - "3.*"
 
 jobs:
-  build-android-313:
-    name: Android (aarch64) Python 3.13
-    runs-on: macos-14
-    timeout-minutes: 60
+  build-android:
+    runs-on: ubuntu-latest
+
     env:
-      PATH: /opt/homebrew/opt/llvm@21/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
-      LDFLAGS: -L/opt/homebrew/opt/llvm@21/lib
-      CPPFLAGS: -I/opt/homebrew/opt/llvm@21/include
+      ANDROID_ARCH: aarch64
+      PREFIX: ${{ github.workspace }}/prefix
       CC: clang
       CXX: clang++
+      LD: clang
+      AR: llvm-ar
+      AS: llvm-as
+      RANLIB: llvm-ranlib
+      STRIP: llvm-strip
 
     steps:
-      - name: Ensure Homebrew is in PATH
-        run: |
-          echo "HOMEBREW_PREFIX=/opt/homebrew" >> $GITHUB_ENV
-          echo "HOMEBREW_CELLAR=/opt/homebrew/Cellar" >> $GITHUB_ENV
-          echo "HOMEBREW_REPOSITORY=/opt/homebrew" >> $GITHUB_ENV
-          echo "/opt/homebrew/bin" >> $GITHUB_PATH
-          echo "/opt/homebrew/sbin" >> $GITHUB_PATH
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Install dependencies & clone CPython
-        run: |
-          brew install readline lld dpkg mpdecimal llvm@21
-          brew link llvm@21 --force
-          git clone --branch 3.13 --depth 1 https://github.com/python/cpython.git cpython-3.13
-          ls cpython-3.13
-          clang --version
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
 
-      - name: Apply patch and prepare Android scripts
-        working-directory: ./cpython-3.13
+      - name: Install dependencies
         run: |
-          curl -L https://raw.githubusercontent.com/yubrajbhoi/termux-python/refs/heads/main/termux.patch -o termux.patch
-          curl -L https://raw.githubusercontent.com/Aasyaco/Some/refs/heads/main/android.py -o android.py
-          git apply termux.patch
-          mkdir -p Android
-          cp android.py Android/
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            clang \
+            lld \
+            llvm \
+            cmake \
+            ninja-build \
+            unzip \
+            curl \
+            xz-utils \
+            pkg-config \
+            autoconf \
+            automake \
+            libtool \
+            m4 \
+            dpkg
 
-      - name: Install cross-compiled libraries
-        working-directory: ./cpython-3.13
+      - name: Prepare directories
         run: |
-          PREFIX="$PWD/cross-build/aarch64-linux-android/prefix"
           mkdir -p $PREFIX
-          cd $PREFIX
 
-          # bzip2
-          curl -L -O https://github.com/beeware/cpython-android-source-deps/releases/download/bzip2-1.0.8-3/bzip2-1.0.8-3-aarch64-linux-android.tar.gz
-          tar -xzf bzip2-1.0.8-3-aarch64-linux-android.tar.gz
+      - name: Install bzip2
+        run: |
+          curl -L -o bzip2-1.0.8-3.tar.xz https://github.com/beeware/cpython-android-source-deps/releases/download/20241113/bzip2-1.0.8-3-aarch64-linux-android.tar.xz
+          tar -xf bzip2-1.0.8-3.tar.xz -C $PREFIX
 
-          # xz/lzma
-          curl -L -O https://github.com/beeware/cpython-android-source-deps/releases/download/xz-5.4.6-1/xz-5.4.6-1-aarch64-linux-android.tar.gz
-          tar -xzf xz-5.4.6-1-aarch64-linux-android.tar.gz
+      - name: Install xz
+        run: |
+          curl -L -o xz-5.4.6-1.tar.xz https://github.com/beeware/cpython-android-source-deps/releases/download/20241113/xz-5.4.6-1-aarch64-linux-android.tar.xz
+          tar -xf xz-5.4.6-1.tar.xz -C $PREFIX
 
-          # zlib (manual cross-compile)
-          curl -L -O https://zlib.net/current/zlib.tar.gz
-          tar -xzf zlib.tar.gz
-          cd zlib-1.3.1
-          export CC=$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/darwin-x86_64/bin/aarch64-linux-android21-clang
-          export AR=$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/darwin-x86_64/bin/aarch64-linux-android-ar
-          export RANLIB=$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/darwin-x86_64/bin/aarch64-linux-android-ranlib
-          ./configure --prefix=$PREFIX --static
-          make -j$(sysctl -n hw.logicalcpu)
-          make install
+      - name: Install prebuilt zlib
+        run: |
+          curl -L -o zlib-prebuilt.zip https://github.com/Aasyaco/Some-help/actions/runs/17937181821/artifacts/4079476254
+          unzip zlib-prebuilt.zip
+          tar -xzf zlib-aarch64-android.tar.gz -C $PREFIX
 
-          # Export environment for CPython build
-          cd $PREFIX
-          echo "LDFLAGS=-L$PREFIX/bzip2-1.0.8-3/lib -L$PREFIX/xz-5.4.6-1/lib -L$PREFIX/lib" >> $GITHUB_ENV
-          echo "CPPFLAGS=-I$PREFIX/bzip2-1.0.8-3/include -I$PREFIX/xz-5.4.6-1/include -I$PREFIX/include" >> $GITHUB_ENV
-          echo "PKG_CONFIG_PATH=$PREFIX/bzip2-1.0.8-3/lib/pkgconfig:$PREFIX/xz-5.4.6-1/lib/pkgconfig:$PREFIX/lib/pkgconfig" >> $GITHUB_ENV
+      - name: Configure env
+        run: |
+          echo "LDFLAGS=-L$PREFIX/bzip2-1.0.8-3/lib -L$PREFIX/xz-5.4.6-1/lib -L$PREFIX/zlib-aarch64-android/lib -L$PREFIX/lib" >> $GITHUB_ENV
+          echo "CPPFLAGS=-I$PREFIX/bzip2-1.0.8-3/include -I$PREFIX/xz-5.4.6-1/include -I$PREFIX/zlib-aarch64-android/include -I$PREFIX/include" >> $GITHUB_ENV
+          echo "PKG_CONFIG_PATH=$PREFIX/bzip2-1.0.8-3/lib/pkgconfig:$PREFIX/xz-5.4.6-1/lib/pkgconfig:$PREFIX/zlib-aarch64-android/lib/pkgconfig:$PREFIX/lib/pkgconfig" >> $GITHUB_ENV
+          echo "CC=clang" >> $GITHUB_ENV
+          echo "CXX=clang++" >> $GITHUB_ENV
+          echo "LD=clang" >> $GITHUB_ENV
+          echo "AR=llvm-ar" >> $GITHUB_ENV
+          echo "AS=llvm-as" >> $GITHUB_ENV
+          echo "RANLIB=llvm-ranlib" >> $GITHUB_ENV
+          echo "STRIP=llvm-strip" >> $GITHUB_ENV
 
-      - name: Build CPython for Android
+      - name: Clone CPython
+        run: |
+          git clone --branch 3.13 --depth 1 https://github.com/python/cpython.git cpython-3.13
+          cp android.py cpython-3.13/Android/android.py
+
+      - name: Clean previous build
         working-directory: ./cpython-3.13/Android
         run: |
-          mkdir -p ../cross-build/build
-          ./android.py clean || true
-          ./android.py ci aarch64-linux-android
-          python3.13 -c "import sys; print(sys.version)" || echo 'Python not found'
+          python3.11 ./android.py clean $ANDROID_ARCH-linux-android || true
+
+      - name: Build CPython
+        working-directory: ./cpython-3.13/Android
+        run: |
+          python3.11 ./android.py ci $ANDROID_ARCH-linux-android
 
       - name: Package as .deb
         run: |
@@ -95,7 +105,7 @@ jobs:
           PKG_VERSION="3.13"
           ARCH="aarch64"
           DEB_DIR="$PKG_NAME"
-          BUILD_DIR="./cpython-3.13/cross-build/aarch64-linux-android"
+          BUILD_DIR="./cpython-3.13/cross-build/$ARCH-linux-android"
 
           mkdir -p $DEB_DIR/DEBIAN
           mkdir -p $DEB_DIR/usr
@@ -104,7 +114,7 @@ jobs:
           Package: $PKG_NAME
           Version: $PKG_VERSION
           Architecture: $ARCH
-          Maintainer: Cross-compiled by NotFound
+          Maintainer: Cross-compiled by GitHub Actions
           Description: Python 3.13 cross-compiled for Termux aarch64
           EOF
 
