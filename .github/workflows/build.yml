@@ -10,9 +10,9 @@ jobs:
   android-build:
     runs-on: macos-latest
     env:
-      ANDROID_HOME: ${{ runner.temp }}/android-sdk
-      ANDROID_NDK_HOME: ${{ runner.temp }}/android-sdk/ndk/r28c
-      PATH: ${{ runner.temp }}/android-sdk/cmdline-tools/latest/bin:${{ runner.temp }}/android-sdk/platform-tools:${{ runner.temp }}/android-sdk/ndk/r28c:$PATH
+      ANDROID_HOME: $HOME/android-sdk
+      ANDROID_NDK_HOME: $HOME/android-sdk/ndk/r28c
+      PATH: $HOME/android-sdk/cmdline-tools/latest/bin:$HOME/android-sdk/platform-tools:$HOME/android-sdk/ndk/r28c:$PATH
 
     steps:
       - name: Checkout repo
