@@ -110,7 +110,7 @@ jobs:
         working-directory: ./cpython-3.14
         run: |
           export PATH="/opt/homebrew/opt/llvm/bin:$PATH"
-          curl -L https://raw.githubusercontent.com/plfj/py-build/refs/heads/main/as14.patch -o as14.patch
+          curl -L https://raw.githubusercontent.com/Aasyaco/Some/refs/heads/main/as14.patch -o as14.patch
           git apply ./as14.patch
 
       - name: Build CPython for Android
