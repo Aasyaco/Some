@@ -1,113 +1,223 @@
-name: Android CI Cross-Build (aarch64-linux-android, macOS, custom android.py, as13.patch)
+name: Build Android
 
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches:
+      - main
+      - '3.*'
   pull_request:
+    branches:
+      - main
+      - '3.*'
 
 jobs:
-  android-ci:
-    runs-on: macos-latest
-
+  build-android-313:
+    name: Android (aarch64) Python 3.13
+    runs-on: macos-14
+    timeout-minutes: 90
     env:
-      ANDROID_HOME: ${{ github.workspace }}/android-sdk
-      ANDROID_SDK_ROOT: ${{ github.workspace }}/android-sdk
-      ANDROID_NDK_VERSION: "27.3.13750724"
-      ANDROID_NDK_HOME: ${{ github.workspace }}/android-sdk/ndk/27.3.13750724
-
+      CC: clang
+      CXX: clang++
+      LD: clang
+      AR: llvm-ar
+      NM: llvm-nm
+      RANLIB: llvm-ranlib
     steps:
-      - name: Ensure Homebrew is installed
+      - name: Install dependencies & clone CPython
         run: |
-          if ! command -v brew &>/dev/null; then
-            echo "Homebrew not found. Installing..."
-            NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-            eval "$(/opt/homebrew/bin/brew shellenv)" || eval "$(/usr/local/bin/brew shellenv)"
-          else
-            echo "Homebrew is already installed."
-          fi
-          brew --version
+          brew install readline llvm lld dpkg mpdecimal
+          brew uninstall gcc || true
+          export PATH="/opt/homebrew/opt/llvm/bin:$PATH"
+          git clone --branch 3.13 --depth 1 https://github.com/python/cpython.git cpython-3.13
+          ls cpython-3.13
 
-      - name: Ensure tar is available
+      - name: Apply patches
+        working-directory: ./cpython-3.13
         run: |
-          if ! command -v tar &>/dev/null; then
-            echo "tar not found, installing..."
-            brew install tar
-          fi
-          tar --version
+          export PATH="/opt/homebrew/opt/llvm/bin:$PATH"
+          curl -L https://raw.githubusercontent.com/yubrajbhoi/termux-python/refs/heads/main/termux.patch -o termux.patch
+          git apply termux.patch
+          curl -L https://raw.githubusercontent.com/plfj/py-build/refs/heads/main/as13.patch -o as13.patch
+          git apply ./as13.patch
 
-      - name: Install llvm (for llvm-profdata and clang)
+      - name: Build CPython for Android
+        working-directory: ./cpython-3.13/Android
         run: |
-          brew install llvm
-          echo "/opt/homebrew/opt/llvm/bin" >> $GITHUB_PATH
-          /opt/homebrew/opt/llvm/bin/llvm-profdata --version || true
-
-
-      - name: Download and unpack prebuilt compression libs
-        run: |
-          mkdir -p $GITHUB_WORKSPACE/android-libs/aarch64-linux-android
-          wget -O compression-libs-aarch64-android.tar.gz \
-          "https://github.com/Aasyaco/Some-help/releases/download/compression_libs/compression-libs-aarch64-android.tar.gz"
-          tar -xzf compression-libs-aarch64-android.tar.gz -C $GITHUB_WORKSPACE/android-libs/aarch64-linux-android --strip-components=1
-
-      - name: Verify unpacked files
-        run: |
-          find $GITHUB_WORKSPACE/android-libs/aarch64-linux-android
-
-      - name: Checkout python/cpython (branch 3.13)
-        uses: actions/checkout@v4
-        with:
-          repository: python/cpython
-          ref: 3.13
-          path: cpython
-
-      - name: Download custom android.py (overwrite)
-        run: |
-          curl -L 'https://raw.githubusercontent.com/Aasyaco/Some/main/android.py' -o cpython/Android/android.py
-          chmod +x cpython/Android/android.py
-
-      - name: Download and apply as13.patch
-        working-directory: cpython
-        run: |
-          curl -L 'https://raw.githubusercontent.com/plfj/py-build/7f18a2a580e6cb495c11c9cab220e9ab1b37c1ef/as13.patch' -o as13.patch
-          git apply as13.patch
-
-      - name: Set up Python 3
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Install Python dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install setuptools wheel
-
-      - name: Install Homebrew dependencies
-        run: |
-          brew install wget curl git cmake pkg-config autoconf automake libtool
-
-      - name: Download Android SDK Command Line Tools
-        run: |
-          mkdir -p "$ANDROID_HOME/cmdline-tools"
-          wget -O sdk.zip "https://dl.google.com/android/repository/commandlinetools-mac-11076708_latest.zip"
-          unzip -q sdk.zip -d "$ANDROID_HOME/cmdline-tools"
-          mv "$ANDROID_HOME/cmdline-tools/cmdline-tools" "$ANDROID_HOME/cmdline-tools/latest"
-          rm sdk.zip
-
-      - name: Accept Android SDK licenses and install NDK and platform-tools
-        run: |
-          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses
-          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$ANDROID_HOME" "platform-tools" "ndk;${ANDROID_NDK_VERSION}"
-
-      - name: Add Android tools to PATH
-        run: |
-          echo "$ANDROID_HOME/platform-tools" >> $GITHUB_PATH
-          echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> $GITHUB_PATH
-          echo "$ANDROID_HOME/ndk/${ANDROID_NDK_VERSION}" >> $GITHUB_PATH
-
-      - name: Run CI cross-build for aarch64-linux-android
-        working-directory: cpython/Android
-        env:
-          ANDROID_HOME: ${{ env.ANDROID_HOME }}
-        run: |
+          export PATH="/opt/homebrew/opt/llvm/bin:$PATH"
           ./android.py ci aarch64-linux-android
+          python3.13 -c "print(__import__('sys').version)" || echo 'Python not found'
+
+      - name: Package as .deb
+        run: |
+          PKG_NAME=pyv313
+          PKG_VERSION=3.13
+          ARCH=aarch64
+          BUILD_DIR=./cpython-3.13/cross-build/aarch64-linux-android
+          OUT_DIR=$( [ -d "$BUILD_DIR/prefix" ] && echo "$BUILD_DIR/prefix" || echo "$BUILD_DIR/install" )
+          DEB_DIR=$PKG_NAME
+
+          mkdir -p $DEB_DIR/DEBIAN
+          mkdir -p $DEB_DIR/usr
+          cp -r $OUT_DIR/* $DEB_DIR/usr/
+
+          cat > $DEB_DIR/DEBIAN/control <<EOF
+          Package: $PKG_NAME
+          Version: $PKG_VERSION
+          Architecture: $ARCH
+          Maintainer: Cross-compiled by NotFound
+          Description: Python $PKG_VERSION cross-compiled for Termux aarch64
+          EOF
+
+          cat > $DEB_DIR/DEBIAN/postinst <<EOF
+          #!/bin/sh
+          set -e
+          echo "$PKG_NAME installed successfully!"
+          exit 0
+          EOF
+          chmod 755 $DEB_DIR/DEBIAN/postinst
+
+          dpkg-deb --build $DEB_DIR ${PKG_NAME}_${PKG_VERSION}_${ARCH}.deb
+
+      - name: Upload Debian package
+        uses: actions/upload-artifact@v4
+        with:
+          name: pyv313
+          path: pyv313_3.13_aarch64.deb
+          if-no-files-found: error
+
+  build-android-314:
+    name: Android (aarch64) Python 3.14
+    runs-on: macos-14
+    timeout-minutes: 90
+    env:
+      CC: clang
+      CXX: clang++
+      LD: clang
+      AR: llvm-ar
+      NM: llvm-nm
+      RANLIB: llvm-ranlib
+    steps:
+      - name: Install dependencies & clone CPython
+        run: |
+          brew install readline llvm lld dpkg mpdecimal
+          brew uninstall gcc || true
+          export PATH="/opt/homebrew/opt/llvm/bin:$PATH"
+          git clone --branch 3.14 --depth 1 https://github.com/python/cpython.git cpython-3.14
+          ls cpython-3.14
+
+      - name: Apply patch
+        working-directory: ./cpython-3.14
+        run: |
+          export PATH="/opt/homebrew/opt/llvm/bin:$PATH"
+          curl -L https://raw.githubusercontent.com/plfj/py-build/refs/heads/main/as14.patch -o as14.patch
+          git apply ./as14.patch
+
+      - name: Build CPython for Android
+        working-directory: ./cpython-3.14/Android
+        run: |
+          export PATH="/opt/homebrew/opt/llvm/bin:$PATH"
+          ./android.py ci aarch64-linux-android
+          python3.14 -c "print(__import__('sys').version)" || echo 'Python not found'
+      - name: Package as .deb
+        run: |
+          PKG_NAME=pyv314
+          PKG_VERSION=3.14
+          ARCH=aarch64
+          BUILD_DIR=./cpython-3.14/cross-build/aarch64-linux-android
+          OUT_DIR=$( [ -d "$BUILD_DIR/prefix" ] && echo "$BUILD_DIR/prefix" || echo "$BUILD_DIR/install" )
+          DEB_DIR=$PKG_NAME
+
+          mkdir -p $DEB_DIR/DEBIAN
+          mkdir -p $DEB_DIR/usr
+          cp -r $OUT_DIR/* $DEB_DIR/usr/
+
+          cat > $DEB_DIR/DEBIAN/control <<EOF
+          Package: $PKG_NAME
+          Version: $PKG_VERSION
+          Architecture: $ARCH
+          Maintainer: Cross-compiled by NotFound
+          Description: Python $PKG_VERSION cross-compiled for Termux aarch64
+          EOF
+
+          cat > $DEB_DIR/DEBIAN/postinst <<EOF
+          #!/bin/sh
+          set -e
+          echo "$PKG_NAME installed successfully!"
+          exit 0
+          EOF
+          chmod 755 $DEB_DIR/DEBIAN/postinst
+
+          dpkg-deb --build $DEB_DIR ${PKG_NAME}_${PKG_VERSION}_${ARCH}.deb
+
+      - name: Upload Debian package
+        uses: actions/upload-artifact@v4
+        with:
+          name: pyv314
+          path: pyv314_3.14_aarch64.deb
+          if-no-files-found: error
+
+  build-android-315:
+    name: Android (aarch64) Python 3.15
+    runs-on: macos-14
+    timeout-minutes: 90
+    env:
+      CC: clang
+      CXX: clang++
+      LD: clang
+      AR: llvm-ar
+      NM: llvm-nm
+      RANLIB: llvm-ranlib
+    steps:
+      - name: Install dependencies & clone CPython
+        run: |
+          brew install readline llvm lld dpkg mpdecimal
+          brew uninstall gcc || true
+          export PATH="/opt/homebrew/opt/llvm/bin:$PATH"
+          git clone --branch main --depth 1 https://github.com/python/cpython.git cpython-3.15
+          ls cpython-3.15
+
+      - name: Build CPython for Android
+        working-directory: ./cpython-3.15/Android
+        run: |
+          export PATH="/opt/homebrew/opt/llvm/bin:$PATH"
+          ./android.py ci aarch64-linux-android
+          python3.15 -c "print(__import__('sys').version)" || echo 'Python not found'
+          
+      - name: Package as .deb
+        run: |
+          PKG_NAME=pyv315
+          PKG_VERSION=3.15
+          ARCH=aarch64
+          BUILD_DIR=./cpython-3.15/cross-build/aarch64-linux-android
+          OUT_DIR=$( [ -d "$BUILD_DIR/prefix" ] && echo "$BUILD_DIR/prefix" || echo "$BUILD_DIR/install" )
+          DEB_DIR=$PKG_NAME
+
+          mkdir -p $DEB_DIR/DEBIAN
+          mkdir -p $DEB_DIR/usr
+          cp -r $OUT_DIR/* $DEB_DIR/usr/
+
+          cat > $DEB_DIR/DEBIAN/control <<EOF
+          Package: $PKG_NAME
+          Version: $PKG_VERSION
+          Architecture: $ARCH
+          Maintainer: Cross-compiled by NotFound
+          Description: Python $PKG_VERSION cross-compiled for Termux aarch64
+          EOF
+
+          cat > $DEB_DIR/DEBIAN/postinst <<EOF
+          #!/bin/sh
+          set -e
+          echo "$PKG_NAME installed successfully!"
+          exit 0
+          EOF
+          chmod 755 $DEB_DIR/DEBIAN/postinst
+
+          dpkg-deb --build $DEB_DIR ${PKG_NAME}_${PKG_VERSION}_${ARCH}.deb
+
+      - name: Upload Debian package
+        uses: actions/upload-artifact@v4
+        with:
+          name: pyv315
+          path: pyv315_3.15_aarch64.deb
+          if-no-files-found: error
