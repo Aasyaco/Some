@@ -1,31 +1,26 @@
-name: Code Review
-
-permissions:
-  contents: read
-  pull-requests: write
+name: AI Code Review with DeepSeek
 
 on:
   pull_request:
-  pull_request_review_comment:
-    types: [created]
+    types: [opened, synchronize, reopened, ready_for_review]
 
 concurrency:
-  group: >-
-    ${{ github.repository }}-${{ github.event.number || github.head_ref ||
-    github.sha }}-${{ github.workflow }}-${{ github.event_name ==
-    'pull_request_review_comment' && 'pr_comment' || 'pr' }}
-  cancel-in-progress: ${{ github.event_name != 'pull_request_review_comment' }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 
 jobs:
-  review:
+  ai_code_review:
     runs-on: ubuntu-latest
-    if: github.event.pull_request.draft == false  # skip drafts to save API costs
+    if: github.event.pull_request.draft == false
     steps:
-      - uses: coderabbitai/ai-pr-reviewer@1.16.2
-        env:
-          GITHUB_TOKEN: ${{ secrets.DERO }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        with:
-          debug: false
-          review_simple_changes: false
-          review_comment_lgtm: false
+    - name: AI Code Review
+      uses: AleksandrFurmenkovOfficial/ai-code-review@v0.9
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        owner: ${{ github.repository_owner }}
+        repo: ${{ github.event.repository.name }}
+        pr_number: ${{ github.event.number }}
+
+        ai_provider: 'deepseek'
+        deepseek_api_key: ${{ secrets.DEEPSEEK_API_KEY }}
+        deepseek_model: 'deepseek-chat-33b' # recommended explicit model
