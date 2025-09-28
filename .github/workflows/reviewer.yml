@@ -16,12 +16,18 @@ jobs:
     - name: AI Code Review
       uses: AleksandrFurmenkovOfficial/ai-code-review@v0.9
       with:
-        token: ${{ secrets.DELO }}
-        owner: ${{ github.repository_owner }}
-        repo: ${{ github.event.repository.name }}
-        pr_number: ${{ github.event.number }}
+        token: ${{ secrets.DELO }}            # <--- REQUIRED!
+        owner: Aasyaco
+        repo: Some
+        pr_number: 8
 
-        ai_provider: 'deepseek'
+        ai_provider: deepseek
         deepseek_api_key: ${{ secrets.DEEPSEEK_API_KEY }}
-        deepseek_model: 'deepseek-chat-33b'
+        deepseek_model: deepseek-chat-33b
+
+        openai_model: gpt-4.1
+        anthropic_model: claude-sonnet-4-20250514
+        google_model: gemini-2.5-flash
+        x_model: grok-3
+        fail_action_if_review_failed: false
         
