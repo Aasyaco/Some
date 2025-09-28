@@ -16,7 +16,7 @@ jobs:
     - name: AI Code Review
       uses: AleksandrFurmenkovOfficial/ai-code-review@v0.9
       with:
-        github_token: ${{ secrets.DELO }}
+        token: ${{ secrets.DELO }}
         owner: ${{ github.repository_owner }}
         repo: ${{ github.event.repository.name }}
         pr_number: ${{ github.event.number }}
