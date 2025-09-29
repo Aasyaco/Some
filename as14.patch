@@ -1,0 +1,9 @@
+--- a/Include/patchlevel.h
++++ b/Include/patchlevel.h
+@@ -27,7 +27,7 @@
+ 
+ /* Version as a string */
+-#define PY_VERSION              "3.14.0rc3+"
++#define PY_VERSION              "3.14.0rc3"
+ /*--end constants--*/
+ 
