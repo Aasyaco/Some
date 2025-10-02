@@ -2,54 +2,70 @@ name: Build Android APK
 
 on:
   push:
-    branches: ["**"]
+    branches: [main]
   pull_request:
-    branches: ["**"]
+    branches: [main]
 
 jobs:
   build:
-    name: Build APK
     runs-on: macos-14
     strategy:
       matrix:
         host: [aarch64-linux-android, x86_64-linux-android]
 
-    env:
-      ANDROID_HOME: ${{ github.workspace }}/android-sdk
-      PATH: ${{ github.workspace }}/android-sdk/cmdline-tools/latest/bin:${{ github.workspace }}/android-sdk/platform-tools:$PATH
-
     steps:
-      - name: Checkout repository
+      # Step 0: Install Homebrew
+      - name: Install Homebrew
+        run: |
+          if ! command -v brew &>/dev/null; then
+            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+          fi
+          echo 'export PATH="/opt/homebrew/bin:$PATH"' >> $GITHUB_ENV
+          export PATH="/opt/homebrew/bin:$PATH"
+
+      # Step 1: Install GNU tar
+      - name: Install GNU tar
+        run: |
+          brew install gnu-tar
+          echo 'export PATH="/opt/homebrew/opt/gnu-tar/libexec/gnubin:$PATH"' >> $GITHUB_ENV
+          export PATH="/opt/homebrew/opt/gnu-tar/libexec/gnubin:$PATH"
+
+      # Step 2: Install Java (OpenJDK 17)
+      - name: Install Java
+        run: |
+          brew install openjdk@17
+          echo 'export JAVA_HOME="/opt/homebrew/opt/openjdk@17"' >> $GITHUB_ENV
+          echo 'export PATH="$JAVA_HOME/bin:$PATH"' >> $GITHUB_ENV
+          export JAVA_HOME="/opt/homebrew/opt/openjdk@17"
+          export PATH="$JAVA_HOME/bin:$PATH"
+
+      # Step 3: Install Android SDK & NDK
+      - name: Install Android SDK & NDK
+        run: |
+          brew install --cask android-sdk
+          echo "ANDROID_HOME=/usr/local/share/android-sdk" >> $GITHUB_ENV
+          echo "PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH" >> $GITHUB_ENV
+          export ANDROID_HOME=/usr/local/share/android-sdk
+          export PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH
+          # Accept licenses
+          yes | sdkmanager --licenses
+          sdkmanager "platform-tools" "platforms;android-34" "ndk;25.2.9519653"
+
+      # Step 4: Checkout CPython repo
+      - name: Checkout CPython
         uses: actions/checkout@v4
         with:
           repository: python/cpython
           path: cpython
-          fetch-depth: 0
+          fetch-depth: 1
 
-      - name: Install dependencies
-        run: |
-          brew install openjdk python3 git curl unzip
+      # Step 5: Checkout Android testbed
+      - name: Checkout Testbed
+        uses: actions/checkout@v4
+        with:
+          path: android-testbed
 
-      - name: Setup Android SDK
+      # Step 6: Build APK
+      - name: Build APK
         run: |
-          mkdir -p $ANDROID_HOME/cmdline-tools
-          cd $ANDROID_HOME/cmdline-tools
-          curl -Lo commandlinetools.zip https://dl.google.com/android/repository/commandlinetools-mac-9477386_latest.zip
-          unzip commandlinetools.zip
-          rm commandlinetools.zip
-          yes | $ANDROID_HOME/cmdline-tools/bin/sdkmanager --licenses
-          $ANDROID_HOME/cmdline-tools/bin/sdkmanager "platform-tools" "platforms;android-33"
-
-      - name: Build Python for Android
-        working-directory: cpython/Android
-        run: |
-          python3 android.py build --clean ${{ matrix.host }}
-
-      - name: Build Testbed APK
-        working-directory: cpython/Android
-        run: |
-          python3 android.py build-testbed --host ${{ matrix.host }}
-
-      - name: List APK artifacts
-        run: |
-          find cpython/Android/testbed/app/build/outputs -name "*.apk"
+          python3 android-testbed/android.py build --clean ${{ matrix.host }}
