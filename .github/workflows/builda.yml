@@ -1,0 +1,55 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+jobs:
+  build:
+    name: Build APK
+    runs-on: macos-14
+    strategy:
+      matrix:
+        host: [aarch64-linux-android, x86_64-linux-android]
+
+    env:
+      ANDROID_HOME: ${{ github.workspace }}/android-sdk
+      PATH: ${{ github.workspace }}/android-sdk/cmdline-tools/latest/bin:${{ github.workspace }}/android-sdk/platform-tools:$PATH
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          repository: python/cpython
+          path: cpython
+          fetch-depth: 0
+
+      - name: Install dependencies
+        run: |
+          brew install openjdk python3 git curl unzip
+
+      - name: Setup Android SDK
+        run: |
+          mkdir -p $ANDROID_HOME/cmdline-tools
+          cd $ANDROID_HOME/cmdline-tools
+          curl -Lo commandlinetools.zip https://dl.google.com/android/repository/commandlinetools-mac-9477386_latest.zip
+          unzip commandlinetools.zip
+          rm commandlinetools.zip
+          yes | $ANDROID_HOME/cmdline-tools/bin/sdkmanager --licenses
+          $ANDROID_HOME/cmdline-tools/bin/sdkmanager "platform-tools" "platforms;android-33"
+
+      - name: Build Python for Android
+        working-directory: cpython/Android
+        run: |
+          python3 android.py build --clean ${{ matrix.host }}
+
+      - name: Build Testbed APK
+        working-directory: cpython/Android
+        run: |
+          python3 android.py build-testbed --host ${{ matrix.host }}
+
+      - name: List APK artifacts
+        run: |
+          find cpython/Android/testbed/app/build/outputs -name "*.apk"
