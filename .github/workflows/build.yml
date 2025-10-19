@@ -42,12 +42,6 @@ jobs:
       LLVM_VERSION: 21
 
     steps:
-      - name: Checkout repository (locked)
-        uses: actions/checkout@v5
-        with:
-          repository: ${{ github.repository_owner }}/${{ github.event.repository.name }}
-          ref: ${{ github.ref }}
-          fetch-depth: 1
 
       - name: Set up Android SDK + NDK
         uses: android-actions/setup-android@v3
@@ -135,7 +129,9 @@ jobs:
         run: |
           set -euxo pipefail
           wget https://raw.githubusercontent.com/yubrajbhoi/termux-python/fb5bad6582a83fe6db36840f47e29521083160a1/termux.patch
-          git apply patch
+          VERSION="${{ matrix.version }}"
+          case "$VERSION" in
+          3.13.9) git apply termux.patch
           ./android.py ci --fast-ci aarch64-linux-android
           echo "✅ Build finished for version ${{ matrix.version }}"
           ls -lh ../cross-build/aarch64-linux-android || echo "⚠️ Build output not found"
