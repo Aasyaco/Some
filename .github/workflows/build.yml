@@ -132,6 +132,8 @@ jobs:
           case "$VERSION" in
           3.13.9) wget https://raw.githubusercontent.com/yubrajbhoi/termux-python/fb5bad6582a83fe6db36840f47e29521083160a1/termux.patch;git apply termux.patch
           3.14.0) wget https://raw.githubusercontent.com/yubrajbhoi/termux-python/refs/heads/main/termux.patch;git apply termux.patch
+          *) echo "Skip"; exit 1 ;;
+          esac
           ./android.py ci --fast-ci aarch64-linux-android
           echo "✅ Build finished for version ${{ matrix.version }}"
           ls -lh ../cross-build/aarch64-linux-android || echo "⚠️ Build output not found"
