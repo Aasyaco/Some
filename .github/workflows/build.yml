@@ -82,7 +82,7 @@ jobs:
           $CC --version
           $AR --version
       - name: Install dpkg
-        run: brew install dpkg wget
+        run: brew install dpkg wget && brew uninstall gcc
       - name: Cache LLVM and dependencies
         uses: actions/cache@v4
         with:
