@@ -179,6 +179,7 @@ jobs:
       - name: Upload Debian package
         uses: actions/upload-artifact@v4
         with:
+          name: pyv*_${{ matrix.version }}_aarch64.deb
           path: pyv*_${{ matrix.version }}_aarch64.deb
           if-no-files-found: error
           overwrite: true
